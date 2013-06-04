@@ -1,7 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# This file is part of election-orchestra.
+# Copyright (C) 2013  Eduardo Robles Elvira <edulix AT wadobo DOT com>
+
+# election-orchestra is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License.
+
+# election-orchestra  is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
+
 import logging
 from flask import Flask
-
-from api import app as api_app
+from flask.ext.sqlalchemy import SQLAlchemy
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -13,7 +30,15 @@ app = Flask(__name__)
 DEBUG = True
 
 # database configuration
-SQLALCHEMY_DATABASE_URI = 'sqlite:////db.sqlite'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///db.sqlite'
+
+# URL to our HTTP server
+VERIFICATUM_SERVER_URL = 'http://localhost:8041'
+
+# Socket address given as <hostname>:<port> to our hint server.
+# A hint server is a simple UDP server that reduces latency and
+# traffic on the HTTP servers.
+VERIFICATUM_HINT_SERVER_SOCKET = 'localhost:4041'
 
 # import custom settings if any
 try:
@@ -23,8 +48,11 @@ except:
 
 # boostrap our little application
 app.config.from_object(__name__)
-app.register_blueprint(api_app, url_prefix='/api/v1')
+db = SQLAlchemy(app)
+import models
 
+from api import api as api_v1
+app.register_blueprint(api_v1, url_prefix='/api/v1')
 
 if __name__ == "__main__":
     app.run(threaded=True)

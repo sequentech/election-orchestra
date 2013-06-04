@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
@@ -15,11 +16,5 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import absolute_import
-from flask import Blueprint, request, make_response
-
-api = Blueprint('api', __name__)
-
-@api.route('/election', methods=['POST'])
-def post_election():
-    return 'hello world!'
+from app import db
+db.create_all()
