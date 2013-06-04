@@ -32,7 +32,7 @@ class Election(db.Model):
 
     title = db.Column(db.Unicode(255))
 
-    session_id = db.Column(db.Unicode(255))
+    session_id = db.Column(db.Unicode(255), unique=True)
 
     is_recurring = db.Column(db.Boolean)
 
@@ -40,9 +40,9 @@ class Election(db.Model):
 
     threshold_parties = db.Column(db.Integer)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.now)
+    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     status = db.Column(db.Unicode(128))
 
@@ -51,6 +51,12 @@ class Election(db.Model):
     public_key = db.Column(db.UnicodeText)
 
     protinfo_filepath = db.Column(db.Unicode(1024))
+
+    def __init__(self, session_id, title, is_recurring, callback_url):
+        self.session_id = session_id
+        self.title = title
+        self.is_recurring = is_recurring
+        self.callback_url = callback_url
 
     def __repr__(self):
         return '<Election %r>' % self.title
@@ -98,9 +104,9 @@ class Authority(db.Model):
     election = db.relationship('Election',
         backref=db.backref('authorities', lazy='dynamic'))
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.now)
+    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     def __repr__(self):
         return '<Authority %r>' % self.name
@@ -140,9 +146,9 @@ class AuthoritySession(db.Model):
 
     verificatum_hint_server_url = db.Column(db.Unicode(1024))
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.now)
+    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     session_expirates_at = db.Column(db.DateTime)
 
@@ -163,9 +169,9 @@ class Tally(db.Model):
 
     status = db.Column(db.Unicode(128))
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.now)
+    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     votes_url = db.Column(db.Unicode(1024))
 
@@ -190,3 +196,22 @@ class Tally(db.Model):
             #'votes_filepath': self.votes_filepath,
             #'tally_filepath': self.tally_filepath,
         }
+
+class Vote(db.Model):
+    '''
+    Represents a vote. This is used to forbid tallying the same vote twice if
+    the election is not recurring.
+    '''
+    id = db.Column(db.Integer, primary_key=True)
+
+    vote_hash = db.Column(db.Unicode(1024))
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    election_id = db.Column(db.Integer, db.ForeignKey('election.id'))
+
+    election = db.relationship('Election',
+        backref=db.backref('votes', lazy='dynamic'))
+
+    def __repr__(self):
+        return '<Vote %r>' % self.vote_hash
