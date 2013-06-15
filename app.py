@@ -17,42 +17,48 @@
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import os
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
-logging.basicConfig(level=logging.DEBUG)
+from frestq import decorators
+from frestq.app import app, run_app, db
 
-app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 ### configuration
 
 # debug, set to false on production deployment
 DEBUG = True
 
-# database configuration
-SQLALCHEMY_DATABASE_URI = 'sqlite:///db.sqlite'
-
 # URL to our HTTP server
-VERIFICATUM_SERVER_URL = 'http://localhost:8041'
+VERIFICATUM_SERVER_URL = 'http://127.0.0.1'
+
+VERIFICATUM_SERVER_PORT_RANGE = [4081, 4083]
 
 # Socket address given as <hostname>:<port> to our hint server.
 # A hint server is a simple UDP server that reduces latency and
 # traffic on the HTTP servers.
-VERIFICATUM_HINT_SERVER_SOCKET = 'localhost:4041'
+VERIFICATUM_HINT_SERVER_SOCKET = '127.0.0.1'
 
-# import custom settings if any
-try:
-    from custom_settings import *
-except:
-    pass
+VERIFICATUM_HINT_SERVER_PORT_RANGE = [8081, 8083]
 
-# boostrap our little application
-app.config.from_object(__name__)
-db = SQLAlchemy(app)
+ROOT_PATH = os.path.split(os.path.abspath(__file__))[0]
+
+SQLALCHEMY_DATABASE_URI = 'sqlite:///%s/db.sqlite' % ROOT_PATH
+
+PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/private')
+PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
+
+PUBLIC_DATA_URL = 'http://127.0.0.1:8082/'
+
 import models
+import director_jobs
+import performer_jobs
 
-from api import api as api_v1
-app.register_blueprint(api_v1, url_prefix='/api/v1')
+from public_api import public_api
+app.register_blueprint(public_api, url_prefix='/public_api')
 
 if __name__ == "__main__":
-    app.run(threaded=True)
+    run_app(config_object=__name__)

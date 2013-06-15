@@ -18,7 +18,12 @@
 from flask import Blueprint, request, make_response, abort
 import json
 
-api = Blueprint('api', __name__)
+from frestq.tasks import SimpleTask
+from frestq.app import app, db
+
+from models import Election, Authority
+
+public_api = Blueprint('public_api', __name__)
 
 def error(status, message=""):
     if message:
@@ -27,7 +32,7 @@ def error(status, message=""):
         data=""
     return make_response(data, status)
 
-@api.route('/election', methods=['POST'])
+@public_api.route('/election', methods=['POST'])
 def post_election():
     '''
     POST /election
@@ -42,6 +47,7 @@ def post_election():
         "title": "New Directive Board",
         "is_recurring": false,
         "callback_url": "http://example.com/callback_create_election",
+        "caller_ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----",
         "extra": [],
         "authorities": [
             {
@@ -76,8 +82,6 @@ def post_election():
         the http and hint servers' urls for each authority could change later,
         if election-orchestra needs it.
     '''
-    from models import Election
-    from app import db
     try:
         data = json.loads(request.data)
     except:
@@ -89,6 +93,7 @@ def post_election():
         {'name': 'title', 'isinstance': basestring},
         {'name': 'is_recurring', 'isinstance': bool},
         {'name': 'callback_url', 'isinstance': basestring},
+        {'name': 'caller_ssl_cert', 'isinstance': basestring},
         {'name': 'extra', 'isinstance': list},
         {'name': 'authorities', 'isinstance': list},
     ]
@@ -100,8 +105,7 @@ def post_election():
     if len(data['authorities']) == 0:
         return error(400, 'no authorities')
 
-    q = Election.query.filter_by(session_id=data['session_id'])
-    if len(q.all()) > 0:
+    if Election.query.filter_by(session_id=data['session_id']).count() > 0:
         return error(400, 'an election with session id %s already '
             'exists' % data['session_id'])
 
@@ -109,9 +113,31 @@ def post_election():
         session_id = data['session_id'],
         title = data['title'],
         is_recurring = data['is_recurring'],
-        callback_url = data['callback_url']
+        callback_url = data['callback_url'],
+        num_parties = len(data['authorities']),
+        threshold_parties = len(data['authorities']),
+        status = 'creating'
     )
     db.session.add(e)
+
+    for auth_data in data['authorities']:
+        authority = Authority(
+            name = auth_data['name'],
+            ssl_cert = auth_data['ssl_cert'],
+            orchestra_url = auth_data['orchestra_url'],
+            session_id = data['session_id']
+        )
+        db.session.add(authority)
     db.session.commit()
+
+    task = SimpleTask(
+        receiver_url=app.config.get('ROOT_URL', ''),
+        action="create_election",
+        queue="orchestra_director",
+        data={
+            'session_id': data['session_id']
+        }
+    )
+    task.create_and_send()
 
     return make_response('', 202)

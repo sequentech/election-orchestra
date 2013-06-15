@@ -15,24 +15,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
+from datetime import datetime
+
 from flask import Flask, jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
-from datetime import datetime
-from app import db
-
 from sqlalchemy.types import TypeDecorator, VARCHAR
-import json
+
+from frestq.app import db
 
 class Election(db.Model):
     '''
     Represents an election
     '''
-
-    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Unicode(255), primary_key=True)
 
     title = db.Column(db.Unicode(255))
-
-    session_id = db.Column(db.Unicode(255), unique=True)
 
     is_recurring = db.Column(db.Boolean)
 
@@ -52,11 +50,9 @@ class Election(db.Model):
 
     protinfo_filepath = db.Column(db.Unicode(1024))
 
-    def __init__(self, session_id, title, is_recurring, callback_url):
-        self.session_id = session_id
-        self.title = title
-        self.is_recurring = is_recurring
-        self.callback_url = callback_url
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
 
     def __repr__(self):
         return '<Election %r>' % self.title
@@ -66,7 +62,6 @@ class Election(db.Model):
         Return an individual instance as a dictionary.
         '''
         ret = {
-            'id': self.id,
             'title': self.title,
             'session_id': self.session_id,
             'is_recurring': self.is_recurring,
@@ -99,7 +94,7 @@ class Authority(db.Model):
 
     orchestra_url = db.Column(db.Unicode(1024))
 
-    election_id = db.Column(db.Integer, db.ForeignKey('election.id'))
+    session_id = db.Column(db.Unicode(255), db.ForeignKey('election.session_id'))
 
     election = db.relationship('Election',
         backref=db.backref('authorities', lazy='dynamic'))
@@ -107,6 +102,10 @@ class Authority(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
 
     def __repr__(self):
         return '<Authority %r>' % self.name
@@ -118,9 +117,9 @@ class Authority(db.Model):
         return {
             'id': self.id,
             'name': self.name,
-            #'sslcert_filepath': self.sslcert_filepath, TODO
+            'ssl_cert': self.ssl_cert,
             'orchestra_url': self.orchestra_url,
-            'election_id': self.election_id
+            'session_id': self.session_id
         }
 
 
@@ -160,7 +159,7 @@ class AuthoritySession(db.Model):
 
 class Tally(db.Model):
     '''
-    Represents an authority
+    Represents an authority's tally
     '''
 
     id = db.Column(db.Integer, primary_key=True)
@@ -208,7 +207,7 @@ class Vote(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    election_id = db.Column(db.Integer, db.ForeignKey('election.id'))
+    session_id = db.Column(db.Unicode(255), db.ForeignKey('election.session_id'))
 
     election = db.relationship('Election',
         backref=db.backref('votes', lazy='dynamic'))
