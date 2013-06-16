@@ -36,13 +36,13 @@ def get_server_url():
     '''
     Return a server url that can be used
     '''
-    return app.config.get('VERIFICATUM_SERVER_URL', '') +\
-        str(app.config.get('VERIFICATUM_SERVER_PORT_RANGE', '')[0])
+    return "%s:%d" % (app.config.get('VERIFICATUM_SERVER_URL', ''),
+        app.config.get('VERIFICATUM_SERVER_PORT_RANGE', '')[0])
 
 
 def get_hint_server_url():
     '''
     Return a hint server url that can be used
     '''
-    return app.config.get('VERIFICATUM_HINT_SERVER_URL', '') +\
-        str(app.config.get('VERIFICATUM_HINT_SERVER_PORT_RANGE', '')[0])
+    return "%s:%d" % (app.config.get('VERIFICATUM_HINT_SERVER_SOCKET', ''),
+        app.config.get('VERIFICATUM_HINT_SERVER_PORT_RANGE', '')[0])

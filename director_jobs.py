@@ -16,6 +16,7 @@
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import codecs
 import subprocess
 
 from frestq import decorators
@@ -44,7 +45,7 @@ def create_election(task):
 
     # read stub file to be sent to all the authorities
     stub_path = os.path.join(election_private_path, 'stub.xml')
-    stub_file = open(stub_path, 'r')
+    stub_file = codecs.open(stub_path, 'r', encoding='utf-8')
     stub_content = stub_file.read()
     stub_file.close()
 
@@ -68,10 +69,10 @@ def create_election(task):
         priv_info_task.add(subtask)
     task.add(priv_info_task)
 
-    # 3. merge the outputs into protInfo.xml
+    # 3. merge the outputs into protInfo.xml and send them to the authorities
     merge_protinfo_task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
-        action="merge_protinfo_info",
+        action="merge_protinfo",
         queue="orchestra_director",
         data=dict(
             session_id=session_id
@@ -79,14 +80,78 @@ def create_election(task):
     )
     task.add(merge_protinfo_task)
 
-    # 4. send protInfo.xml to the authorities
-
     # 5. send protInfo.xml to the original sender (we have finished!)
+    return_election_task = SimpleTask(
+        receiver_url=app.config.get('ROOT_URL', ''),
+        action="return_election",
+        queue="orchestra_director",
+        data=dict(
+            session_id=session_id
+        )
+    )
+    task.add(return_election_task)
+    print "\n\nAUTHORITY TASK return_election_task.id = %s\n\n" % return_election_task.task_model.id
 
-@decorators.task(action="merge_protinfo_info", queue="orchestra_director")
+
+@decorators.task(action="merge_protinfo", queue="orchestra_director")
 def merge_protinfo_task(task):
-    # iterate on all priv info subtasks to merge them
+    input_data = task.get_data()['input_data']
+    session_id = input_data['session_id']
+
     priv_info_task = task.get_prev()
+    election = db.session.query(Election)\
+        .filter(Election.session_id == session_id).first()
+
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, session_id)
+
+    protinfo_path = os.path.join(election_private_path, 'localProtInfo.xml')
+
+    # create protInfo<i>.xml files, extracting data from subtasks
+    i = 1
+    l = ["vmni", "-merge"]
     for subtask in priv_info_task.get_children():
-        # TODO
-        pass
+        protinfo_content = subtask.get_data()['output_data']
+        protinfo_path = os.path.join(election_private_path, 'protInfo%d.xml' % i)
+        l.append('protInfo%d.xml' % i)
+        protinfo_file = codecs.open(protinfo_path, 'w', encoding='utf-8')
+        protinfo_file.write(protinfo_content)
+        protinfo_file.close()
+        i += 1
+
+    # merge the files
+    subprocess.check_call(l, cwd=election_private_path)
+
+    # read protinfo
+    protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
+    protinfo_file = codecs.open(protinfo_path, 'r', encoding='utf-8')
+    protinfo_content = protinfo_file.read()
+    protinfo_file.close()
+
+    # send protInfo.xml to the authorities
+    send_merged_protinfo = ParallelTask()
+    task.add(send_merged_protinfo)
+    for authority in election.authorities:
+        subtask = SimpleTask(
+            receiver_url=authority.orchestra_url,
+            action="receive_merged_protinfo",
+            queue="orchestra_performer",
+            data=dict(
+                session_id=session_id,
+                protInfo_content=protinfo_content
+            )
+        )
+        send_merged_protinfo.add(subtask)
+
+    return dict(
+        output_data=protinfo_content
+    )
+
+
+@decorators.task(action="return_election", queue="orchestra_director")
+def return_election(task):
+    input_data = task.get_data()['input_data']
+    session_id = input_data['session_id']
+    protInfo_content = task.get_prev().get_data()['output_data']
+
+    # TODO just POST the protInfo

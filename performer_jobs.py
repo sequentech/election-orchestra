@@ -16,6 +16,7 @@
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import codecs
 import subprocess
 
 from frestq import decorators
@@ -40,6 +41,7 @@ def generate_private_info(task):
     stub_path = os.path.join(election_private_path, 'stub.xml')
 
     # the election might actually exist if we're the director
+    # TODO instead of returning an error, let the operator decide
     if os.path.exists(protinfo_path):
         return dict(
             output_data="election with session_id %s already exists" % session_id,
@@ -59,19 +61,29 @@ def generate_private_info(task):
             threshold_parties = input_data['threshold_parties'],
         )
         db.session.add(election)
+
+        for auth_data in input_data['authorities']:
+            if not os.path.exists(stub_path):
+                authority = Authority(
+                    name = auth_data['name'],
+                    ssl_cert = auth_data['ssl_cert'],
+                    orchestra_url = auth_data['orchestra_url'],
+                    session_id = input_data['session_id']
+                )
+                db.session.add(authority)
+        db.session.commit()
     else:
         election = db.session.query(Election)\
             .filter(Election.session_id == session_id).first()
 
+    auth_name = None
     for auth_data in input_data['authorities']:
-        authority = Authority(
-            name = auth_data['name'],
-            ssl_cert = auth_data['ssl_cert'],
-            orchestra_url = auth_data['orchestra_url'],
-            session_id = input_data['session_id']
-        )
-        db.session.add(authority)
-    db.session.commit()
+        if auth_data['orchestra_url'] == app.config.get('ROOT_URL', ''):
+            auth_name = auth_data['name']
+
+    # error, self not found
+    if not auth_name:
+        raise Exception("trying to process what SEEMS to be an external election")
 
     # this are an "indicative" url, because port can vary later on
     server_url = get_server_url()
@@ -79,20 +91,39 @@ def generate_private_info(task):
 
     # 3. copy stub.xml to private path
     stub_path = os.path.join(election_private_path, 'stub.xml')
-    stub_file = open(stub_path, 'w')
+    stub_file = codecs.open(stub_path, 'w', encoding='utf-8')
     stub_content = stub_file.write(input_data['stub_content'])
     stub_file.close()
 
     # 4. generate localProtInfo.xml
-    l = ["vmni", "-party", "-name", election.title, "-http",
+    l = ["vmni", "-party", "-name", auth_name, "-http",
         server_url, "-hint", hint_server_url]
     subprocess.check_call(l, cwd=election_private_path)
 
     # 5. read local protinfo file to be sent back to the orchestra director
-    protinfo_file = open(stub_path, 'r')
+    protinfo_file = codecs.open(protinfo_path, 'r', encoding='utf-8')
     protinfo_content = protinfo_file.read()
     protinfo_file.close()
 
     return dict(
         output_data=protinfo_content
     )
+
+@decorators.task(action="receive_merged_protinfo", queue="orchestra_performer")
+def generate_private_info(task):
+    '''
+    Generates the local private info for a new election
+    '''
+    input_data = task.get_data()['input_data']
+    session_id = input_data['session_id']
+
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, session_id)
+
+    protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
+    if not os.path.exists(protinfo_path):
+        protinfo_file = codecs.open(protinfo_path, 'w', encoding='utf-8')
+        protinfo_file.write(input_data['protInfo_content'])
+        protinfo_file.close()
+
+    subprocess.check_call(["vmn", "-keygen", "publicKey"], cwd=election_private_path)
