@@ -22,8 +22,9 @@ import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
+# Note: we need to import app before decorators or it won't work
+from frestq.app import app
 from frestq import decorators
-from frestq.app import app, run_app, db
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -51,14 +52,13 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///%s/db.sqlite' % ROOT_PATH
 PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/private')
 PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
 
-PUBLIC_DATA_URL = 'http://127.0.0.1:8082/'
-
 import models
 import director_jobs
 import performer_jobs
-
 from public_api import public_api
+
+app.configure_app(config_object=__name__)
 app.register_blueprint(public_api, url_prefix='/public_api')
 
 if __name__ == "__main__":
-    run_app(config_object=__name__)
+    app.run(parse_args=True)

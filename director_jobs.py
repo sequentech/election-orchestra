@@ -27,6 +27,7 @@ from models import Election, Authority
 from utils import mkdir_recursive
 
 @decorators.task(action="create_election", queue="orchestra_director")
+@decorators.local_task
 def create_election(task):
     input_data = task.get_data()['input_data']
     session_id = input_data['session_id']
@@ -69,7 +70,8 @@ def create_election(task):
         priv_info_task.add(subtask)
     task.add(priv_info_task)
 
-    # 3. merge the outputs into protInfo.xml and send them to the authorities
+    # 3. merge the outputs into protInfo.xml and send them to the authorities,
+    # then the authoritities will cooperativelly generate the publicKey
     merge_protinfo_task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
         action="merge_protinfo",
@@ -90,10 +92,10 @@ def create_election(task):
         )
     )
     task.add(return_election_task)
-    print "\n\nAUTHORITY TASK return_election_task.id = %s\n\n" % return_election_task.task_model.id
 
 
 @decorators.task(action="merge_protinfo", queue="orchestra_director")
+@decorators.local_task
 def merge_protinfo_task(task):
     input_data = task.get_data()['input_data']
     session_id = input_data['session_id']
@@ -128,7 +130,8 @@ def merge_protinfo_task(task):
     protinfo_content = protinfo_file.read()
     protinfo_file.close()
 
-    # send protInfo.xml to the authorities
+    # send protInfo.xml to the authorities and command them to cooperate in
+    # the generation of the publicKey
     send_merged_protinfo = ParallelTask()
     task.add(send_merged_protinfo)
     for authority in election.authorities:
@@ -149,6 +152,7 @@ def merge_protinfo_task(task):
 
 
 @decorators.task(action="return_election", queue="orchestra_director")
+@decorators.local_task
 def return_election(task):
     input_data = task.get_data()['input_data']
     session_id = input_data['session_id']

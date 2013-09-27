@@ -51,7 +51,7 @@ def generate_private_info(task):
 
     # 2. create local data in the database
 
-    # only create election if we are the director
+    # only create election if we are not the director
     if not os.path.exists(stub_path):
         election = Election(
             session_id = input_data['session_id'],
@@ -78,6 +78,8 @@ def generate_private_info(task):
 
     auth_name = None
     for auth_data in input_data['authorities']:
+        # easy TODO: check also that urls are unique and that our cert is
+        # correctly set
         if auth_data['orchestra_url'] == app.config.get('ROOT_URL', ''):
             auth_name = auth_data['name']
 

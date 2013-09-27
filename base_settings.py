@@ -1,6 +1,8 @@
 # debug, set to false on production deployment
 DEBUG = True
 
+ROOT_URL = 'https://127.0.0.1:5000/api/queues'
+
 # URL to our HTTP server
 VERIFICATUM_SERVER_URL = 'http://127.0.0.1'
 
@@ -21,4 +23,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///%s/db.sqlite' % ROOT_PATH
 PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/private')
 PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
 
-PUBLIC_DATA_URL = 'http://127.0.0.1:8082/'
+# security configuration
+SSL_CERT_PATH = '%s/certs/selfsigned/cert.pem' % ROOT_PATH
+SSL_KEY_PATH = '%s/certs/selfsigned/key-nopass.pem' % ROOT_PATH
+ALLOW_ONLY_SSL_CONNECTIONS = True

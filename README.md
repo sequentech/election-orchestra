@@ -7,7 +7,7 @@ public-keys and perform the tallying using verificatum.
 Public API (Director)
 ---------------------
 
-The public API will include a publicly directory available over https listing
+The public API will include a publicly available directory over https listing
 for each election in the following form:
 
  elections/
@@ -20,6 +20,9 @@ for each election in the following form:
           |- cleartexts
           |- tally_586ea3b591.tar.bz2
           |- tally_586ea3b591.sha2
+
+This listing can be shared directly via http with your favourite http server,
+over with SSL for security.
 
 POST /election
 ==============

@@ -40,7 +40,7 @@ class Election(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     status = db.Column(db.Unicode(128))
 
@@ -101,7 +101,7 @@ class Authority(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
@@ -147,7 +147,7 @@ class AuthoritySession(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     session_expirates_at = db.Column(db.DateTime)
 
@@ -170,7 +170,7 @@ class Tally(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    last_updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     votes_url = db.Column(db.Unicode(1024))
 

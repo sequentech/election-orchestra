@@ -47,7 +47,6 @@ def post_election():
         "title": "New Directive Board",
         "is_recurring": false,
         "callback_url": "http://example.com/callback_create_election",
-        "caller_ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----",
         "extra": [],
         "authorities": [
             {
@@ -93,7 +92,6 @@ def post_election():
         {'name': 'title', 'isinstance': basestring},
         {'name': 'is_recurring', 'isinstance': bool},
         {'name': 'callback_url', 'isinstance': basestring},
-        {'name': 'caller_ssl_cert', 'isinstance': basestring},
         {'name': 'extra', 'isinstance': list},
         {'name': 'authorities', 'isinstance': list},
     ]
@@ -108,6 +106,27 @@ def post_election():
     if Election.query.filter_by(session_id=data['session_id']).count() > 0:
         return error(400, 'an election with session id %s already '
             'exists' % data['session_id'])
+
+    auth_reqs = [
+        {'name': 'name', 'isinstance': basestring},
+        {'name': 'orchestra_url', 'isinstance': basestring},
+        {'name': 'ssl_cert', 'isinstance': basestring},
+    ]
+
+    for adata in data['authorities']:
+        for req in auth_reqs:
+            if req['name'] not in adata or not isinstance(adata[req['name']],
+                req['isinstance']):
+                return error(400, "invalid %s parameter" % req['name'])
+
+    def unique_by_keys(l, keys):
+        for k in keys:
+            if len(l) != len(set([i[k] for i in l])):
+                return False
+        return True
+
+    if not unique_by_keys(data['authorities'], ['ssl_cert', 'orchestra_url']):
+        return error(400, "invalid authorities parameters")
 
     e = Election(
         session_id = data['session_id'],
