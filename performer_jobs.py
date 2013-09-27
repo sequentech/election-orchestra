@@ -111,8 +111,8 @@ def generate_private_info(task):
         output_data=protinfo_content
     )
 
-@decorators.task(action="receive_merged_protinfo", queue="orchestra_performer")
-def generate_private_info(task):
+@decorators.task(action="generate_public_key", queue="orchestra_performer")
+def generate_public_key(task):
     '''
     Generates the local private info for a new election
     '''

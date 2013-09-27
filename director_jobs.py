@@ -20,7 +20,7 @@ import codecs
 import subprocess
 
 from frestq import decorators
-from frestq.tasks import SimpleTask, ParallelTask
+from frestq.tasks import SimpleTask, ParallelTask, SynchronizedTask
 from frestq.app import app, db
 
 from models import Election, Authority
@@ -132,17 +132,18 @@ def merge_protinfo_task(task):
 
     # send protInfo.xml to the authorities and command them to cooperate in
     # the generation of the publicKey
-    send_merged_protinfo = ParallelTask()
+    send_merged_protinfo = SynchronizedTask()
     task.add(send_merged_protinfo)
     for authority in election.authorities:
         subtask = SimpleTask(
             receiver_url=authority.orchestra_url,
-            action="receive_merged_protinfo",
+            action="generate_public_key",
             queue="orchestra_performer",
             data=dict(
                 session_id=session_id,
                 protInfo_content=protinfo_content
-            )
+            ),
+            receiver_ssl_cert=authority.ssl_cert
         )
         send_merged_protinfo.add(subtask)
 
