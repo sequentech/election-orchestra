@@ -4,365 +4,100 @@ Election Orchestra
 This software orchestrates the authorities servers to create election
 public-keys and perform the tallying using verificatum.
 
-Public API (Director)
----------------------
+Installation
+============
 
-The public API will include a publicly available directory over https listing
-for each election in the following form:
+1. Download from the git repository if you haven't got a copy
 
- elections/
- |- 554ef33a44/
-    |- protInfo.xml
-    |- protInfo.sha2
-    |- tallies/
-       |- 586ea3b591/
-          |- ciphertexts
-          |- cleartexts
-          |- tally_586ea3b591.tar.bz2
-          |- tally_586ea3b591.sha2
+```
+    $ git clone https://github.com/agoraciudadana/election-orchestra && cd election-orchestra
+```
 
-This listing can be shared directly via http with your favourite http server,
-over with SSL for security.
+2. Install package and its dependencies
 
-POST /election
-==============
+```
+    $ mkvirtualenv myenv
+    $ pip install -r requirements.txt
+    $ sudo python setup.py install
+```
 
-Description:
-    Creates an election, with the given input data. This involves communicating
-    with the different election authorities to generate the joint public key.
+Configuration
+=============
 
-Input:
-    - session_id
-    - title
-    - is_recurring
-    - callback_url
-    - caller_ssl_cert
-    - extra
-    - authorities
-        - name
-        - orchestra_url
-        - ssl_cert
+You'll need to generate your own ssl certificate, then configure your favourite
+web server to be used as the frestq frontend. Also you need to create a database
+and configure everythin in your a settings.py file. Then do something like the
+following to initialize the database:
 
-Output:
-    expiration_date
+```
+    $ FRESTQ_SETTINGS=settings.py python app.py --createdb
+```
 
-Callback url:
-    Callback url will be called to update the caller with status. The calls
-    will be in json with two main keys: status and data.
+Then launch in a similar way to this (take a look at auth1.ini):
 
-    {
-        "status": "finished",
-        "reference": {
-            "session_id": <id>,
-            "action": "POST /election"
-        },
-        "data": {
-            "protinfo_url": <url>,
-            "protinfo_hash": ""
-        }
-    }
+```
+    $ uwsgi --ini auth.ini
+```
 
-    {
-        "status": "error",
-        "reference": {
-            "session_id": <id>,
-            "action": "POST /election"
-        },
-        "data": {
-            "message": "<error message>"
-        }
-    }
+Tutorial
+========
 
-POST /tally
-===========
+For everyday use, you just need to every once and again take a look at what new
+elections or tallies have been requested, review them, and accept or deny them.
 
-Tallies an election, involves communicating with the election authorities
-that have to cooperate to do the tally.
+To list pding external tasks, execute the following command:
 
-Input:
-    - session_id
-    - votes_url
-    - votes_hash
-    - callback_url
-    - extra
+```
+    $ FRESTQ_SETTINGS=settings.py python app.py --tasks --filters "task_type=external" "status=executing" 2>/dev/null
+```
 
-Output:
-    - tally_id
-    - expiration_date
+To show the details of a specific external task, execute:
 
-Callback url:
-    Callback url will be called to update the caller with status. The calls
-    will be in json with two main keys: status and data.
+```
+    $ FRESTQ_SETTINGS=settings.py python app.py --show-external <shortid>
+```
 
-    {
-        "status": "finished",
-        "reference": {
-            "tally_id": <id>,
-            "action": "POST /tally"
-        },
-        "data": {
-            "tally_url": <url>,
-            "tally_hash": ""
-        }
-    }
+To approve it, do:
 
-    {
-        "status": "error",
-        "reference": {
-            "tally_id": <id>,
-            "action": "POST /tally"
-        },
-        "data": {
-            "message": "<error message>"
-        }
-    }
+```
+    $ FRESTQ_SETTINGS=settings.py python app.py --finish <shortid> '{"status": "accepted"}'
+```
 
-Internal API
-------------
+Or if you want to deny that request, then do:
 
-Tally process from the REST task queue point of view
-====================================================
+```
+    $ FRESTQ_SETTINGS=settings.py python app.py --finish <shortid> '{"status": "denied"}'
+```
 
-From A to B_n:
 
-This call is used to collect approval by the admins for the tallying. This
-happens when the director of the election orchestra receives a POST /tally call.
+Example request:
 
-POST /task
 {
-    "action": "election-orchestra.approve_tally",
-    "input_data": {
-        "session_id": "2",
-        "tally_id": "1",
-        "tally_url": "https://example.com/broker/data/3ef338061/",
-        "tally_hash": "",
+    "session_id": "vota1",
+    "is_recurring": false,
+    "callback_url": "http://example.com/callback_create_election",
+    "extra": [],
+    "title": "New Directive Board",
+    "url": "https://example.com/election/url",
+    "description": "election description",
+    "question_data": {
+        "question": "Who Should be President?",
+        "tally_type": "ONE_CHOICE",
+        "answers": ["Alice", "Bob"],
+        "max": 1, "min": 0
     },
-    "expiration_date": "date",
-    "broker_url": "https://example.com/broker/",
+    "voting_start_date": "2013-12-06T18:17:14.457000",
+    "voting_end_date": "2013-12-09T18:17:14.457000",
+    "authorities": [
+        {
+            "name": "Auth1",
+            "orchestra_url": "https://127.0.0.1:5000/api/queues",
+            "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIDwTCCAqmgAwIBAgIJAJjjgNzBed6aMA0GCSqGSIb3DQEBBQUAMHcxCzAJBgNV\nBAYTAkVTMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDETMBEGA1UE\nCgwKVGVzdCBBZ29yYTEPMA0GA1UEAwwGRlJFU1RRMSAwHgYJKoZIhvcNAQkBFhFl\nZHVsaXhAd2Fkb2JvLmNvbTAeFw0xMzA3MjIxNjA2NTdaFw0xNjA1MTExNjA2NTda\nMHcxCzAJBgNVBAYTAkVTMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJp\nZDETMBEGA1UECgwKVGVzdCBBZ29yYTEPMA0GA1UEAwwGRlJFU1RRMSAwHgYJKoZI\nhvcNAQkBFhFlZHVsaXhAd2Fkb2JvLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP\nADCCAQoCggEBAMLzkBGTwH7FiA36SyjlmlV8kh+jZ//LP4PqJNJjc5SAJHGxbexI\nI2lzEFQbHMXBbHPM1NnLJitv0y8Gg9QWWBajqQeymu8O0Np7u1LG9JqNzRKIEDXk\n0SZgSoCld/cCTvtUgcT68CBE55af5EifjCI4fRf2229AiP7iibVsQ5dL/zyxLnEe\nGvuSrd+s8xyVp3pyhfHAlRe+ftATjJ3wBUGCmUr9d1lS9fQziCIYzeq9fWnwxCz/\ngp76930iUEIp7vYQzSfgbWSuQgrlrZUOIR/2+Rfk2Y1S6dE9NwjGtLp3kMOIeM9A\nclA/YyPUR47DX2yHxjIUz7jLT+li5Wrx7JUCAwEAAaNQME4wHQYDVR0OBBYEFOuX\nWa3ax+1lokcIZ39dvOp5tyzUMB8GA1UdIwQYMBaAFOuXWa3ax+1lokcIZ39dvOp5\ntyzUMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAD8F+JIJ8wm9Tb6d\nLQb4BJqG+Qp7SsmCrBmxj36E9NF5ydZFdpFzhBk+FPp0qmb7QD6zVkH5KT/opO7O\nioaJ72mJWYW8YIUIo3gKg/CRIzbOh6p0rUJIrUwntE1a/LunQ5Ig+WLQrzrJjziA\neYXkm5r/B8XE6TQ9UGWFpRcV7FBFhhN2IYBiV8yAdx40b+6jMi4H7BSflfoTWdDe\n2UjFu0kEsmzzdVBAeFErYelhEhuiZEf8OhGtfnBPq4F59zRClCb94J2+yfA1ssEx\n1fs90BmQt9y07D14+MW78P3nWAQqWs5uP15V6P1xT5MHQKJIH4LhC3yTWng3rLRy\nw6/a4eE=\n-----END CERTIFICATE-----"
+        },
+        {
+            "name": "Auth2",
+            "orchestra_url": "https://127.0.0.1:5001/api/queues",
+            "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJAKTjrEAw+lxWMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV\nBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\naWRnaXRzIFB0eSBMdGQwHhcNMTMwNzIyMTYwODM0WhcNMTYwNTExMTYwODM0WjBF\nMQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50\nZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\nCgKCAQEAvVH2LmO7309mX32l7tPgPWF4w2QitKnWwryJGAYoMz9HluGjoVDvK+mT\noHJFD1sdYBvG2bFPZHcj5+5V+OvVMUHb3OB0M+1tA+GBtjtLdyd3tjqYz15iBKEt\n3MTaJ+Eg2S/4CurUB7MRII+/i6MtzzuY+r5+dp9c9kruw0ztKDGONatkCWlsAON7\nacT3G1IJ6hDCsHjpi3KVub9bemLMLWLazzvhQiALs80rnlvKPAMJO5YaIZneGbS5\nLEiskygTx4THftWSis1nNrwdoWJKrj35fINIqRSMyhV8/2YbdKfjSC4SYrudT3Fw\nyEwnkuhu/yElr86/JnSN2zZlj+MjrwIDAQABo1AwTjAdBgNVHQ4EFgQUGUgho+tE\nwNXv9y0mMmufzZyu2XUwHwYDVR0jBBgwFoAUGUgho+tEwNXv9y0mMmufzZyu2XUw\nDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQUFAAOCAQEAMzYhnT8Ii10UL1hE0meD\nr+l99bymvi5284TUy8yne3FFOl4By6prpXeBSI1hOc9T2ZNJcJE/mSwMa7WQDkBC\nMPlsU1o2Xr2ewl8es1ik0/oLLU2pzsnfxmQe5j97ALgscfvkn0QO6KDeKmdd1P5c\nsLcwgiRul1drdVpjf3yMYs21IUpyBgcjvp1I7MIbYgNbxE1g3V0vGMAhG2TN3lMS\nCW7G4KBUxyp/HaAUVzz5NWOkNJ+U894d1jFacPcxcxI1zdUzyijQ8mrJvX/FqXHg\nOzzWuEmfCQld1HBMLEmQgiG0Yf3AWPpko4qy3H3BIqBpXoKVRyOCHWUQIChHJibp\n1A==\n-----END CERTIFICATE-----"
+        }
+    ]
 }
-answer:
-STATUS 201
-{
-    "status": "waiting",
-    "task_id": "98105eabc",
-    // this is when broker should ask again about the status if it didn't
-    // receive any more news from us
-    "pingback_date": "date",
-    "info": "waiting on authority operator to review",
-    "data": {
-    }
-}
-
-From B_n to A:
-PUT /task/98105eabc/status
-{
-    "status": "finished",
-    "task_id": "98105eabc",
-    "data": {
-        "result": "APPROVED"
-    }
-}
-
-From B_n to A:
-{
-    "status": "finished",
-    "task_id": "98105eabc",
-    "data": {
-        "result": "DENIED"
-    }
-}
-
-When pingback_date expires, A calls to B_n to GET /task/98105eabc/status,
-receiving similar type of answers.
-
-If A receives a denied request, tallying process is cancelled, and this is
-notified to the election-orchestra client.
-
-However if everything is fine, then we have the approval of all authorities, and
-thus the real tally process can begin to be requested in another set of tasks.
-These tasks however need to do multiparty synchronization. To do that, we will
-use in a first version a naive algorithm.
-
-From A to B_n:
-
-POST /task
-{
-    "action": "election-orchestra.perform_tally",
-    "input_data": {
-        "tally_id": "1", // all other data was already sent previously
-    },
-    "expiration_date": "date",
-    "broker_url": "https://example.com/broker/",
-}
-answer:
-STATUS 201
-{
-    "status": "waiting",
-    "task_id": "11105ea5d",
-    "pingback_date": "date",
-    // control message are "internal" of the task protocol
-    "is_control": true,
-    "info": "busy working on other things",
-    "data": {
-    }
-}
-other possible answers, that can also be received via a ping back update:
-STATUS 201
-{
-    "status": "ready",
-    "task_id": "11105ea5d",
-    // ready means that B_n is ready to start processing, but is waiting for
-    // the other authorities to also be ready. If timeout_date is reached
-    // and this task is still in ready state, it will expire
-    "expiration_date": "date",
-    "pingback_date": "date",
-    // control message are "internal" of the task protocol
-    "is_control": true,
-    "data": {
-    }
-}
-STATUS 201
-{
-    "status": "working",
-    "task_id": "11105ea5d",
-    // working means that B_n is busy doing stuff (processing votes/tallying)
-    // together with the other nodes. Expiration date means that past that date,
-    // the task will be killed because it was taking too much time (this is to
-    // avoid tasks that get all resources or get stuck)
-    "expiration_date": "date",
-    "pingback_date": "date",
-    // control message are "internal" of the task protocol
-    "is_control": true,
-    "data": {
-    }
-}
-STATUS 403 // denied
-{
-    "status": "error",
-    "task_id": "11105ea5d",
-    "info": "denied because the tallying was not approved by operator" // example
-    "data": {
-    }
-}
-
-STATUS 200
-{
-    "status": "finished",
-    "task_id": "11105ea5d",
-    "data": {
-        "results_url": "https://example.com/frestq/11105ea5d/data"
-    }
-}
-
-// when a task expires because for example it was ready and other authorities
-// were not ready before expiration_time, broker needs to request a new task
-// to B_n
-STATUS 400 // expired
-{
-    "status": "expired",
-    "task_id": "11105ea5d",
-    "is_control": true,
-    "data": {
-    }
-}
-
-
-@frestq.task(action="election-orchestra-post_tally", queue=director_queue)
-@frestq.permissions(check_election_certificate)
-def post_tally(request):
-    '''
-    Example of a task performed by the election-orchestra director
-    '''
-
-    election = get_object(Election, session_id=request.data.session_id)
-    tally = Tally(election)
-    tally.votes = download(ciphertexts_url, ciphertexts_hash)
-    tally.save()
-
-    approve_tally = ChordTask()
-    for auth in authorities:
-        task = Task(worker=auth.url,
-            action="election-orchestra.approve_tally",
-            receiver_ssl_cert=auth.ssl_cert,
-            data=dict(
-                tally_id=tally.id,
-                session_id=tally.election.session_id)
-            ),
-            async_data=dict(
-                votes__path=tally.votes_path
-            )
-        approve_tally.append(task)
-    request.current_task.add(approve_tally)
-
-    perform_tally = SynchronousTasks(algorithm="naive")
-    for auth in authorities:
-        tally_task = Task(worker=auth.url,
-            action="election-orchestra.perform_tally",
-            receiver_ssl_cert=auth.ssl_cert,
-            data=dict(tally_id=tally.id))
-        perform_tally.append(task)
-
-    request.current_task.expiration_time = now() + delta(hours=24)
-    request.current_task.add(approve_tally)
-
-
-def check_director_certificate(request):
-    '''
-    Example of permissions decorator
-    '''
-    election = get_object(Election, session_id=request.data.session_id)
-    if not election.director_ssl_cert.check(request.ssl_cert):
-        raise frestq.UnauthorizedError(info="invalid ssl director certificate")
-
-@frestq.task(action="election-orchestra.approve_tally", queue=orchestra_queue)
-@frestq.permissions(check_director_certificate)
-def approve_tally(request):
-    '''
-    Example of a task performed by an election-orchestra authority requested by
-    a director
-    '''
-
-    # NOTE that the usual interface that the authorities operator will use will
-    # NOT be a frestq interface, but a taylor-made interface for elections and
-    # tallies. It'll be specific for this and user-friendly.
-
-    # There will also be an interface for frestq, but that will be completely
-    # differet.
-    tally = Tally(election__session_id=request.data.session_id,
-        id=request.data.tally_id)
-    # stores votes in a persistent file
-    tally.set_votes(request.async_data.votes__path)
-    tally.status = "PENDING"
-    tally.task_id = request.current_task.id
-    tally.save()
-
-    request.current_task.status="waiting"
-    request.current_task.info = "waiting on authority operator to review",
-
-
-// app.py:
-    orchestra_queue = frestq.Queue("orchestra")
-    director_queue = frestq.Queue("director")
-
-    app.register_queue(orchestra_queue)
-    app.register_queue(director_queue)
-
-
-
-class Message
-    id = ""
-    received_date = ""
-    action = ""
-    input_data = "{}"
-    input_method = "POST"
-    task_id = 13
-    input_path = "/task/blah"
-    callback_broker
-    input_ssl_cert = ""
-    output_status = "200"
-    output_data = ""
-    expiration_time = ""
-    expires = true
-    pingback_date = ""
-    needs_pingback = true
-    info = ""
