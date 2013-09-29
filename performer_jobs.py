@@ -20,7 +20,8 @@ import codecs
 import subprocess
 
 from frestq import decorators
-from frestq.tasks import SimpleTask, ParallelTask
+from frestq.utils import dumps, loads
+from frestq.tasks import SimpleTask, ParallelTask, ExternalTask
 from frestq.app import app, db
 
 from models import Election, Authority
@@ -56,6 +57,10 @@ def generate_private_info(task):
         election = Election(
             session_id = input_data['session_id'],
             title = input_data['title'],
+            description = input_data['description'],
+            question_data = dumps(input_data['question_data'], indent=4),
+            voting_start_date = input_data['voting_start_date'],
+            voting_end_date = input_data['voting_end_date'],
             is_recurring = input_data['is_recurring'],
             num_parties = input_data['num_parties'],
             threshold_parties = input_data['threshold_parties'],
@@ -87,6 +92,54 @@ def generate_private_info(task):
     if not auth_name:
         raise Exception("trying to process what SEEMS to be an external election")
 
+    label = "approve_election"
+    info_text = """* URL: %(url)s
+* Title: %(title)s
+* Description: %(description)s
+* Voting period: %(start_date)s - %(end_date)s
+* Question data: %(question)s
+* Authorities: %(authorities)s""" % dict(
+        url = election.url,
+        title = election.title,
+        description = election.description,
+        start_date = election.voting_start_date.isoformat(),
+        end_date = election.voting_end_date.isoformat(),
+        question = election.question_data,
+        authorities = dumps(input_data['authorities'], indent=4)
+    )
+    approve_task = ExternalTask(label=label,
+        data=info_text)
+    verificatum_task = SimpleTask(
+        receiver_url=app.config.get('ROOT_URL', ''),
+        action="generate_private_info_verificatum",
+        queue="orchestra_performer",
+        data=dict())
+    task.add(approve_task)
+    task.add(verificatum_task)
+
+@decorators.task(action="generate_private_info_verificatum", queue="orchestra_performer")
+@decorators.local_task
+def generate_private_info_verificatum(task):
+    '''
+    After the task has been approved, execute verificatum to generate the
+    private info
+    '''
+    input_data = task.get_parent().get_data()['input_data']
+    session_id = input_data['session_id']
+
+    # 1. check this is a new election
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, session_id)
+    protinfo_path = os.path.join(election_private_path, 'localProtInfo.xml')
+    stub_path = os.path.join(election_private_path, 'stub.xml')
+    election = db.session.query(Election)\
+        .filter(Election.session_id == session_id).first()
+
+    auth_name = None
+    for auth_data in input_data['authorities']:
+        if auth_data['orchestra_url'] == app.config.get('ROOT_URL', ''):
+            auth_name = auth_data['name']
+
     # this are an "indicative" url, because port can vary later on
     server_url = get_server_url()
     hint_server_url = get_hint_server_url()
@@ -107,9 +160,10 @@ def generate_private_info(task):
     protinfo_content = protinfo_file.read()
     protinfo_file.close()
 
-    return dict(
-        output_data=protinfo_content
-    )
+
+    # set the output data of parent task, and update sender
+    task.get_parent().set_output_data(protinfo_content,
+                                      send_update_to_sender=True)
 
 @decorators.task(action="generate_public_key", queue="orchestra_performer")
 def generate_public_key(task):

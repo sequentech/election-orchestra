@@ -17,7 +17,9 @@
 
 from flask import Blueprint, request, make_response, abort
 import json
+from datetime import datetime
 
+from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask
 from frestq.app import app, db
 
@@ -44,10 +46,20 @@ def post_election():
     POST /election
     {
         "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
-        "title": "New Directive Board",
         "is_recurring": false,
         "callback_url": "http://example.com/callback_create_election",
         "extra": [],
+        "title": "New Directive Board",
+        "url": "https://example.com/election/url",
+        "description": "election description",
+        "question_data": {
+            "question": "Who Should be President?",
+            "tally_type": "ONE_CHOICE",
+            "answers": ["Alice", "Bob"],
+            "max": 1, "min": 0
+        },
+        "voting_start_date": "2012-12-06T18:17:14.457000",
+        "voting_end_date": "2012-12-06T18:17:14.457000",
         "authorities": [
             {
                 "name": "Asociación Sugus GNU/Linux",
@@ -82,7 +94,7 @@ def post_election():
         if election-orchestra needs it.
     '''
     try:
-        data = json.loads(request.data)
+        data = loads(request.data)
     except:
         return error(400, "invalid json")
 
@@ -90,11 +102,17 @@ def post_election():
     requirements = [
         {'name': 'session_id', 'isinstance': basestring},
         {'name': 'title', 'isinstance': basestring},
+        {'name': 'url', 'isinstance': basestring},
+        {'name': 'description', 'isinstance': basestring},
+        {'name': 'question_data', 'isinstance': dict},
+        {'name': 'voting_start_date', 'isinstance': datetime},
+        {'name': 'voting_end_date', 'isinstance': datetime},
         {'name': 'is_recurring', 'isinstance': bool},
         {'name': 'callback_url', 'isinstance': basestring},
         {'name': 'extra', 'isinstance': list},
         {'name': 'authorities', 'isinstance': list},
     ]
+
     for req in requirements:
         if req['name'] not in data or not isinstance(data[req['name']],
             req['isinstance']):
@@ -131,6 +149,11 @@ def post_election():
     e = Election(
         session_id = data['session_id'],
         title = data['title'],
+        url = data['url'],
+        description = data['description'],
+        question_data = dumps(data['question_data'], indent=4),
+        voting_start_date = data['voting_start_date'],
+        voting_end_date = data['voting_end_date'],
         is_recurring = data['is_recurring'],
         callback_url = data['callback_url'],
         num_parties = len(data['authorities']),
@@ -159,4 +182,4 @@ def post_election():
     )
     task.create_and_send()
 
-    return make_response('', 202)
+    return make_response(dumps(dict(task_id=task.get_data()['id'])), 202)

@@ -30,8 +30,6 @@ class Election(db.Model):
     '''
     session_id = db.Column(db.Unicode(255), primary_key=True)
 
-    title = db.Column(db.Unicode(255))
-
     is_recurring = db.Column(db.Boolean)
 
     num_parties = db.Column(db.Integer)
@@ -41,6 +39,19 @@ class Election(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    title = db.Column(db.Unicode(255))
+
+    url = db.Column(db.Unicode(1024))
+
+    description = db.Column(db.UnicodeText)
+
+    # converted into and from JSON
+    question_data = db.Column(db.UnicodeText)
+
+    voting_start_date = db.Column(db.DateTime)
+
+    voting_end_date = db.Column(db.DateTime)
 
     status = db.Column(db.Unicode(128))
 
