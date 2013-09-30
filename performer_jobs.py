@@ -21,7 +21,7 @@ import subprocess
 
 from frestq import decorators
 from frestq.utils import dumps, loads
-from frestq.tasks import SimpleTask, ParallelTask, ExternalTask
+from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.app import app, db
 
 from models import Election, Authority
@@ -58,7 +58,7 @@ def generate_private_info(task):
             session_id = input_data['session_id'],
             title = input_data['title'],
             description = input_data['description'],
-            question_data = dumps(input_data['question_data'], indent=4),
+            question_data = input_data['question_data'],
             voting_start_date = input_data['voting_start_date'],
             voting_end_date = input_data['voting_end_date'],
             is_recurring = input_data['is_recurring'],
@@ -97,14 +97,14 @@ def generate_private_info(task):
 * Title: %(title)s
 * Description: %(description)s
 * Voting period: %(start_date)s - %(end_date)s
-* Question data: %(question)s
+* Question data: %(question_data)s
 * Authorities: %(authorities)s""" % dict(
         url = election.url,
         title = election.title,
         description = election.description,
         start_date = election.voting_start_date.isoformat(),
         end_date = election.voting_end_date.isoformat(),
-        question = election.question_data,
+        question_data = input_data['question_data'],
         authorities = dumps(input_data['authorities'], indent=4)
     )
     approve_task = ExternalTask(label=label,
@@ -124,6 +124,12 @@ def generate_private_info_verificatum(task):
     After the task has been approved, execute verificatum to generate the
     private info
     '''
+    # first of all, check that parent task is approved. if that's not the case,
+    # then cancel everythin
+    if task.get_prev().get_data()['output_data'] != dict(status="accepted"):
+        task.set_output_data("task not accepted")
+        raise TaskError(dict(reason="task not accepted"))
+
     input_data = task.get_parent().get_data()['input_data']
     session_id = input_data['session_id']
 

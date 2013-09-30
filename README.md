@@ -57,7 +57,7 @@ elections or tallies have been requested, review them, and accept or deny them.
 To list pding external tasks, execute the following command:
 
 ```
-    $ FRESTQ_SETTINGS=settings.py python app.py --tasks --filters "task_type=external" "status=executing" 2>/dev/null
+    $ FRESTQ_SETTINGS=settings.py ./app.py --tasks --filters "task_type=external" "status=executing" 2>/dev/null
 
     +----------+-----------------------------------+---------------------------+-----------------+-----------+-----------+----------------------------+
     | small id |             sender_url            |           action          |      queue      | task_type |   status  |        created_date        |
@@ -139,6 +139,7 @@ To see the status of a task:
 
 Example request:
 
+POST https://127.0.0.1:5000/public_api/election
 {
     "session_id": "vota1",
     "is_recurring": false,
