@@ -140,6 +140,8 @@ To see the status of a task:
 Example request:
 
 POST https://127.0.0.1:5000/public_api/election
+
+```
 {
     "session_id": "vota1",
     "is_recurring": false,
@@ -169,3 +171,4 @@ POST https://127.0.0.1:5000/public_api/election
         }
     ]
 }
+```
