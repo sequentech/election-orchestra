@@ -17,87 +17,117 @@
 
 import os
 import codecs
+import requests
 import subprocess
 
 from frestq import decorators
 from frestq.utils import loads, dumps
-from frestq.tasks import SimpleTask, ParallelTask, SynchronizedTask
+from frestq.tasks import SimpleTask, ParallelTask, SynchronizedTask, TaskError
+from frestq.action_handlers import TaskHandler
 from frestq.app import app, db
 
 from models import Election, Authority
 from utils import mkdir_recursive
 
-@decorators.task(action="create_election", queue="orchestra_director")
 @decorators.local_task
-def create_election(task):
-    input_data = task.get_data()['input_data']
-    session_id = input_data['session_id']
-    election = db.session.query(Election)\
-        .filter(Election.session_id == session_id).first()
+@decorators.task(action="create_election", queue="orchestra_director")
+class CreateElectionTask(TaskHandler):
+    def execute(self):
+        task = self.task
+        input_data = task.get_data()['input_data']
+        session_id = input_data['session_id']
+        election = db.session.query(Election)\
+            .filter(Election.session_id == session_id).first()
 
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_private_path = os.path.join(private_data_path, session_id)
-    mkdir_recursive(election_private_path)
+        private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+        election_private_path = os.path.join(private_data_path, session_id)
+        mkdir_recursive(election_private_path)
 
-    # 1. create stub.xml
-    l = ["vmni", "-prot", "-sid", election.session_id, "-name",
-        election.title, "-nopart", str(election.num_parties), "-thres",
-        str(election.threshold_parties)]
-    subprocess.check_call(l, cwd=election_private_path)
+        # 1. create stub.xml
+        l = ["vmni", "-prot", "-sid", election.session_id, "-name",
+            election.title, "-nopart", str(election.num_parties), "-thres",
+            str(election.threshold_parties)]
+        subprocess.check_call(l, cwd=election_private_path)
 
-    # read stub file to be sent to all the authorities
-    stub_path = os.path.join(election_private_path, 'stub.xml')
-    stub_file = codecs.open(stub_path, 'r', encoding='utf-8')
-    stub_content = stub_file.read()
-    stub_file.close()
+        # read stub file to be sent to all the authorities
+        stub_path = os.path.join(election_private_path, 'stub.xml')
+        stub_file = codecs.open(stub_path, 'r', encoding='utf-8')
+        stub_content = stub_file.read()
+        stub_file.close()
 
-    # 2. generate private info and protocol info files on each authority
-    priv_info_task = ParallelTask()
-    for authority in election.authorities:
-        subtask = SimpleTask(
-            receiver_url=authority.orchestra_url,
-            action="generate_private_info",
-            queue="orchestra_performer",
+        # 2. generate private info and protocol info files on each authority
+        priv_info_task = ParallelTask()
+        for authority in election.authorities:
+            subtask = SimpleTask(
+                receiver_url=authority.orchestra_url,
+                action="generate_private_info",
+                queue="orchestra_performer",
+                data=dict(
+                    stub_content=stub_content,
+                    session_id=session_id,
+                    title = election.title,
+                    url = election.url,
+                    description = election.description,
+                    question_data = election.question_data,
+                    voting_start_date = election.voting_start_date,
+                    voting_end_date = election.voting_end_date,
+                    is_recurring = election.is_recurring,
+                    num_parties = election.num_parties,
+                    threshold_parties = election.threshold_parties,
+                    authorities=[a.to_dict() for a in election.authorities]
+                )
+            )
+            priv_info_task.add(subtask)
+        task.add(priv_info_task)
+
+        # 3. merge the outputs into protInfo.xml and send them to the authorities,
+        # then the authoritities will cooperativelly generate the publicKey
+        merge_protinfo_task = SimpleTask(
+            receiver_url=app.config.get('ROOT_URL', ''),
+            action="merge_protinfo",
+            queue="orchestra_director",
             data=dict(
-                stub_content=stub_content,
-                session_id=session_id,
-                title = election.title,
-                url = election.url,
-                description = election.description,
-                question_data = election.question_data,
-                voting_start_date = election.voting_start_date,
-                voting_end_date = election.voting_end_date,
-                is_recurring = election.is_recurring,
-                num_parties = election.num_parties,
-                threshold_parties = election.threshold_parties,
-                authorities=[a.to_dict() for a in election.authorities]
+                session_id=session_id
             )
         )
-        priv_info_task.add(subtask)
-    task.add(priv_info_task)
+        task.add(merge_protinfo_task)
 
-    # 3. merge the outputs into protInfo.xml and send them to the authorities,
-    # then the authoritities will cooperativelly generate the publicKey
-    merge_protinfo_task = SimpleTask(
-        receiver_url=app.config.get('ROOT_URL', ''),
-        action="merge_protinfo",
-        queue="orchestra_director",
-        data=dict(
-            session_id=session_id
+        # 5. send protInfo.xml to the original sender (we have finished!)
+        return_election_task = SimpleTask(
+            receiver_url=app.config.get('ROOT_URL', ''),
+            action="return_election",
+            queue="orchestra_director",
+            data=dict(
+                session_id=session_id
+            )
         )
-    )
-    task.add(merge_protinfo_task)
+        task.add(return_election_task)
 
-    # 5. send protInfo.xml to the original sender (we have finished!)
-    return_election_task = SimpleTask(
-        receiver_url=app.config.get('ROOT_URL', ''),
-        action="return_election",
-        queue="orchestra_director",
-        data=dict(
-            session_id=session_id
-        )
-    )
-    task.add(return_election_task)
+    def handle_error(self, error):
+        '''
+        When an error is propagated up to here, is time to return to the sender
+        that this task failed
+        '''
+        session = requests.sessions.Session()
+        input_data = self.task.get_data()['input_data']
+        session_id = input_data['session_id']
+        election = db.session.query(Election)\
+            .filter(Election.session_id == session_id).first()
+
+        session = requests.sessions.Session()
+        callback_url = election.callback_url
+        fail_data = {
+            "status": "error",
+            "reference": {
+                "session_id": session_id,
+                "action": "POST /election"
+            },
+            "data": {
+                "message": "election creation failed for some reason"
+            }
+        }
+        r = session.request('post', callback_url, data=dumps(fail_data),
+                            verify=False)
 
 
 @decorators.task(action="merge_protinfo", queue="orchestra_director")
@@ -157,12 +187,26 @@ def merge_protinfo_task(task):
         output_data=protinfo_content
     )
 
-
 @decorators.task(action="return_election", queue="orchestra_director")
 @decorators.local_task
 def return_election(task):
     input_data = task.get_data()['input_data']
     session_id = input_data['session_id']
     protInfo_content = task.get_prev().get_data()['output_data']
+    election = db.session.query(Election)\
+        .filter(Election.session_id == session_id).first()
 
-    # TODO just POST the protInfo
+    session = requests.sessions.Session()
+    callback_url = election.callback_url
+    ret_data = {
+        "status": "finished",
+        "reference": {
+            "session_id": session_id,
+            "action": "POST /election"
+        },
+        "data": {
+            "protinfo": protInfo_content,
+        }
+    }
+    r = session.request('post', callback_url, data=dumps(ret_data),
+                        verify=False)

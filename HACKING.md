@@ -57,8 +57,7 @@ Callback url:
             "action": "POST /election"
         },
         "data": {
-            "protinfo_url": <url>,
-            "protinfo_hash": ""
+            "protinfo": <data content>,
         }
     }
 

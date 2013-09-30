@@ -145,7 +145,7 @@ POST https://127.0.0.1:5000/public_api/election
 {
     "session_id": "vota1",
     "is_recurring": false,
-    "callback_url": "http://example.com/callback_create_election",
+    "callback_url": "https://127.0.0.1:5000/public_api/receive_election",
     "extra": [],
     "title": "New Directive Board",
     "url": "https://example.com/election/url",

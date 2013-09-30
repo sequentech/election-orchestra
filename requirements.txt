@@ -1,3 +1,4 @@
 flask
 flask-sqlalchemy
 git+https://github.com/agoraciudadana/frestq.git
+git+https://github.com/edulix/requests.git#egg=requests
