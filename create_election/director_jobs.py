@@ -20,6 +20,7 @@ import codecs
 import subprocess
 
 from frestq import decorators
+from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask, ParallelTask, SynchronizedTask
 from frestq.app import app, db
 
@@ -61,6 +62,7 @@ def create_election(task):
                 stub_content=stub_content,
                 session_id=session_id,
                 title = election.title,
+                url = election.url,
                 description = election.description,
                 question_data = election.question_data,
                 voting_start_date = election.voting_start_date,

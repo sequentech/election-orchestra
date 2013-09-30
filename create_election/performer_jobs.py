@@ -18,14 +18,78 @@
 import os
 import codecs
 import subprocess
+import json
+from datetime import datetime
 
 from frestq import decorators
 from frestq.utils import dumps, loads
 from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
+from frestq.protocol import certs_differ
 from frestq.app import app, db
 
 from models import Election, Authority
 from utils import *
+
+def check_election_data(data, check_extra):
+    '''
+    check election input data. Used both in public_api.py:post_election and
+    generate_private_info.
+    '''
+    requirements = [
+        {'name': u'session_id', 'isinstance': basestring},
+        {'name': u'title', 'isinstance': basestring},
+        {'name': u'url', 'isinstance': basestring},
+        {'name': u'description', 'isinstance': basestring},
+        {'name': u'voting_start_date', 'isinstance': datetime},
+        {'name': u'voting_end_date', 'isinstance': datetime},
+        {'name': u'is_recurring', 'isinstance': bool},
+        {'name': u'authorities', 'isinstance': list},
+    ]
+
+    if check_extra:
+        requirements += [
+            {'name': 'callback_url', 'isinstance': basestring},
+            {'name': 'extra', 'isinstance': list},
+            {'name': u'question_data', 'isinstance': dict},
+        ]
+    else:
+        requirements += [
+            {'name': u'question_data', 'isinstance': basestring},
+        ]
+
+    for req in requirements:
+        if req['name'] not in data or not isinstance(data[req['name']],
+            req['isinstance']):
+            print req['name'], data.get(req['name'], None), type(data[req['name']])
+            raise TaskError(dict(reason="invalid %s parameter" % req['name']))
+
+    if len(data['authorities']) == 0:
+        raise TaskError(dict(reason='no authorities'))
+
+    if Election.query.filter_by(session_id=data['session_id']).count() > 0:
+        raise TaskError(dict(reason='an election with session id %s already '
+            'exists' % data['session_id']))
+
+    auth_reqs = [
+        {'name': 'name', 'isinstance': basestring},
+        {'name': 'orchestra_url', 'isinstance': basestring},
+        {'name': 'ssl_cert', 'isinstance': basestring},
+    ]
+
+    for adata in data['authorities']:
+        for req in auth_reqs:
+            if req['name'] not in adata or not isinstance(adata[req['name']],
+                req['isinstance']):
+                raise TaskError(dict(reason="invalid %s parameter" % req['name']))
+
+    def unique_by_keys(l, keys):
+        for k in keys:
+            if len(l) != len(set([i[k] for i in l])):
+                return False
+        return True
+
+    if not unique_by_keys(data['authorities'], ['ssl_cert', 'orchestra_url']):
+        raise TaskError(dict(reason="invalid authorities parameters"))
 
 @decorators.task(action="generate_private_info", queue="orchestra_performer")
 def generate_private_info(task):
@@ -41,22 +105,20 @@ def generate_private_info(task):
     protinfo_path = os.path.join(election_private_path, 'localProtInfo.xml')
     stub_path = os.path.join(election_private_path, 'stub.xml')
 
-    # the election might actually exist if we're the director
-    # TODO instead of returning an error, let the operator decide
+    # localProtInfo.xml should not exist
     if os.path.exists(protinfo_path):
-        return dict(
-            output_data="election with session_id %s already exists" % session_id,
-            output_status="error"
-        )
+        raise TaskError(dict(reason="election with session_id %s already exists" % session_id))
     mkdir_recursive(election_private_path)
 
     # 2. create local data in the database
 
     # only create election if we are not the director
-    if not os.path.exists(stub_path):
+    if certs_differ(task.get_data()['sender_ssl_cert'], app.config.get('SSL_CERT_STRING', '')):
+        check_election_data(input_data, False)
         election = Election(
             session_id = input_data['session_id'],
             title = input_data['title'],
+            url = input_data['url'],
             description = input_data['description'],
             question_data = input_data['question_data'],
             voting_start_date = input_data['voting_start_date'],
@@ -83,14 +145,12 @@ def generate_private_info(task):
 
     auth_name = None
     for auth_data in input_data['authorities']:
-        # easy TODO: check also that urls are unique and that our cert is
-        # correctly set
         if auth_data['orchestra_url'] == app.config.get('ROOT_URL', ''):
             auth_name = auth_data['name']
 
     # error, self not found
     if not auth_name:
-        raise Exception("trying to process what SEEMS to be an external election")
+        raise TaskError(dict(reason="trying to process what SEEMS to be an external election"))
 
     label = "approve_election"
     info_text = """* URL: %(url)s
@@ -99,12 +159,12 @@ def generate_private_info(task):
 * Voting period: %(start_date)s - %(end_date)s
 * Question data: %(question_data)s
 * Authorities: %(authorities)s""" % dict(
-        url = election.url,
+        url = input_data['url'],
         title = election.title,
         description = election.description,
         start_date = election.voting_start_date.isoformat(),
         end_date = election.voting_end_date.isoformat(),
-        question_data = input_data['question_data'],
+        question_data = dumps(loads(input_data['question_data']), indent=4),
         authorities = dumps(input_data['authorities'], indent=4)
     )
     approve_task = ExternalTask(label=label,

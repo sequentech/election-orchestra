@@ -20,10 +20,11 @@ import json
 from datetime import datetime
 
 from frestq.utils import loads, dumps
-from frestq.tasks import SimpleTask
+from frestq.tasks import SimpleTask, TaskError
 from frestq.app import app, db
 
 from models import Election, Authority
+from create_election.performer_jobs import check_election_data
 
 public_api = Blueprint('public_api', __name__)
 
@@ -98,60 +99,18 @@ def post_election():
     except:
         return error(400, "invalid json")
 
-    # check input data
-    requirements = [
-        {'name': 'session_id', 'isinstance': basestring},
-        {'name': 'title', 'isinstance': basestring},
-        {'name': 'url', 'isinstance': basestring},
-        {'name': 'description', 'isinstance': basestring},
-        {'name': 'question_data', 'isinstance': dict},
-        {'name': 'voting_start_date', 'isinstance': datetime},
-        {'name': 'voting_end_date', 'isinstance': datetime},
-        {'name': 'is_recurring', 'isinstance': bool},
-        {'name': 'callback_url', 'isinstance': basestring},
-        {'name': 'extra', 'isinstance': list},
-        {'name': 'authorities', 'isinstance': list},
-    ]
-
-    for req in requirements:
-        if req['name'] not in data or not isinstance(data[req['name']],
-            req['isinstance']):
-            return error(400, "invalid %s parameter" % req['name'])
-
-    if len(data['authorities']) == 0:
-        return error(400, 'no authorities')
-
-    if Election.query.filter_by(session_id=data['session_id']).count() > 0:
-        return error(400, 'an election with session id %s already '
-            'exists' % data['session_id'])
-
-    auth_reqs = [
-        {'name': 'name', 'isinstance': basestring},
-        {'name': 'orchestra_url', 'isinstance': basestring},
-        {'name': 'ssl_cert', 'isinstance': basestring},
-    ]
-
-    for adata in data['authorities']:
-        for req in auth_reqs:
-            if req['name'] not in adata or not isinstance(adata[req['name']],
-                req['isinstance']):
-                return error(400, "invalid %s parameter" % req['name'])
-
-    def unique_by_keys(l, keys):
-        for k in keys:
-            if len(l) != len(set([i[k] for i in l])):
-                return False
-        return True
-
-    if not unique_by_keys(data['authorities'], ['ssl_cert', 'orchestra_url']):
-        return error(400, "invalid authorities parameters")
+    try:
+        check_election_data(data, True)
+    except TaskError, e:
+        print e
+        return error(400, e.data['reason'])
 
     e = Election(
         session_id = data['session_id'],
         title = data['title'],
         url = data['url'],
         description = data['description'],
-        question_data = dumps(data['question_data'], indent=4),
+        question_data = dumps(data['question_data']),
         voting_start_date = data['voting_start_date'],
         voting_end_date = data['voting_end_date'],
         is_recurring = data['is_recurring'],

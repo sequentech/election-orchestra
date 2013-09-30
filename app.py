@@ -55,6 +55,8 @@ PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
 import models
 import create_election.director_jobs
 import create_election.performer_jobs
+import tally_election.director_jobs
+import tally_election.performer_jobs
 from public_api import public_api
 
 app.configure_app(config_object=__name__)
