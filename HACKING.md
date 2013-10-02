@@ -44,7 +44,7 @@ Input:
         - ssl_cert
 
 Output:
-    expiration_date
+    - expiration_date
 
 Callback url:
     Callback url will be called to update the caller with status. The calls
@@ -96,7 +96,7 @@ Callback url:
     {
         "status": "finished",
         "reference": {
-            "tally_id": <id>,
+            "session_id": <id>,
             "action": "POST /tally"
         },
         "data": {
@@ -108,7 +108,7 @@ Callback url:
     {
         "status": "error",
         "reference": {
-            "tally_id": <id>,
+            "session_id": <id>,
             "action": "POST /tally"
         },
         "data": {

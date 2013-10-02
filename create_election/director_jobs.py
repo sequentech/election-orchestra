@@ -17,7 +17,9 @@
 
 import os
 import codecs
+import shutil
 import requests
+import binascii
 import subprocess
 
 from frestq import decorators
@@ -174,7 +176,7 @@ def merge_protinfo_task(task):
         subtask = SimpleTask(
             receiver_url=authority.orchestra_url,
             action="generate_public_key",
-            queue="orchestra_performer",
+            queue="verificatum_queue",
             data=dict(
                 session_id=session_id,
                 protInfo_content=protinfo_content
@@ -196,6 +198,27 @@ def return_election(task):
     election = db.session.query(Election)\
         .filter(Election.session_id == session_id).first()
 
+    # read into a string the pubkey
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    pubkey_path = os.path.join(private_data_path, session_id, 'publicKey')
+    pubkey_file = open(pubkey_path, 'r')
+    pubkey = binascii.hexlify(pubkey_file.read())
+    pubkey_file.close()
+
+    # publish the pubkey
+    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
+    pub_election_path = os.path.join(pubdata_path, session_id)
+    pubkey_path2 = os.path.join(pub_election_path, 'publicKey')
+    if not os.path.exists(pub_election_path):
+        mkdir_recursive(pub_election_path)
+    shutil.copyfile(pubkey_path, pubkey_path2)
+
+    # publish protInfo.xml too
+    election_private_path = os.path.join(private_data_path, session_id)
+    protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
+    protinfo_path2 = os.path.join(pub_election_path, 'protInfo.xml')
+    shutil.copyfile(protinfo_path, protinfo_path2)
+
     session = requests.sessions.Session()
     callback_url = election.callback_url
     ret_data = {
@@ -206,6 +229,7 @@ def return_election(task):
         },
         "data": {
             "protinfo": protInfo_content,
+            "publickey": pubkey
         }
     }
     r = session.request('post', callback_url, data=dumps(ret_data),

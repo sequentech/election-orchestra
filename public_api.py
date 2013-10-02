@@ -15,9 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
-from flask import Blueprint, request, make_response, abort
+
 import json
+import re
 from datetime import datetime
+
+from flask import Blueprint, request, make_response, abort
 
 from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask, TaskError
@@ -80,19 +83,51 @@ def post_election():
         ]
     }
 
-        The parameter "extra" allows to modify the protocol settings for the
-        stub.xml that is generated with verificatum's vmni command. Please
-        refer to verificatum documentation for more details.
+    The parameter "extra" allows to modify the protocol settings for the
+    stub.xml that is generated with verificatum's vmni command. Please
+    refer to verificatum documentation for more details.
 
-        On success, response is empty with status 202 Accepted. When the
-        election finally gets processed, the callback_url is called with a POST
-        containing directly the protInfo.xml file generated jointly by each
-        authority.
 
-        Note that this protInfo.xml will contain the election public key, but
-        also some other information. In particular, it's worth noting that
-        the http and hint servers' urls for each authority could change later,
-        if election-orchestra needs it.
+    On success, response is empty with status 202 Accepted and returns something
+    like:
+
+    {
+        "task_id": "ba83ee09-aa83-1901-bb11-e645b52fc558",
+    }
+    When the election finally gets processed, the callback_url is called with a
+    POST containing the protInfo.xml file generated jointly by each
+    authority, following this example response:
+
+    {
+        "status": "finished",
+        "reference": {
+            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "action": "POST /election"
+        },
+        "data": {
+            "protinfo": "<protInfo_content>",
+            "publickey": "<pubkey codified in hexadecimal>"
+        }
+    }
+
+    Note that this protInfo.xml will contain the election public key, but
+    also some other information. In particular, it's worth noting that
+    the http and hint servers' urls for each authority could change later,
+    if election-orchestra needs it.
+
+    If there was an error, then the callback will be called following this
+    example format:
+
+    {
+        "status": "error",
+        "reference": {
+            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "action": "POST /election"
+        },
+        "data": {
+            "message": "error message"
+        }
+    }
     '''
     try:
         data = loads(request.data)
@@ -143,11 +178,122 @@ def post_election():
 
     return make_response(dumps(dict(task_id=task.get_data()['id'])), 202)
 
+
+@public_api.route('/tally', methods=['POST'])
+def post_tally():
+    '''
+    POST /tally
+
+    Tallies an election, with the given input data. This involves communicating
+    with the different election authorities to do the tally.
+
+    Example request:
+    POST /tally
+    {
+        "session_id": "vota4",
+        "callback_url": "https://127.0.0.1:5000/public_api/receive_tally",
+        "extra": [],
+        "votes_url": "https://127.0.0.1:5000/public_data/vota4/encrypted_ciphertexts",
+        "votes_hash": "sha512://e96a0c0684fc5d515c89522d1bf26a142d9a72c3f38f4f1e578db9b66f3b6ed3e7590d801e1ce8cc17456a3a7226cec5814f4131cbc455ffe0315e5f387c718f"
+    }
+
+    On success, response is empty with status 202 Accepted and returns something
+    like:
+
+    {
+        "task_id": "ba83ee09-aa83-1901-bb11-e645b52fc558",
+    }
+
+    When the election finally gets processed, the callback_url is called with POST
+    similar to the following example:
+
+    {
+        "status": "finished",
+        "reference": {
+            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "action": "POST /tally"
+        },
+        "data": {
+            "votes_url": "https://127.0.0.1:5000/public_data/vota4/tally.tar.bz2", "sha512://cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+        }
+    }
+
+    If there was an error, then the callback will be called following this
+    example format:
+
+    {
+        "status": "error",
+        "reference": {
+            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "action": "POST /tally"
+        },
+        "data": {
+            "message": "error message"
+        }
+    }
+    '''
+
+    # first of all, parse input data
+    try:
+        data = loads(request.data)
+    except:
+        return error(400, "invalid json")
+    requirements = [
+        {'name': u'session_id', 'isinstance': basestring},
+        {'name': u'callback_url', 'isinstance': basestring},
+        {'name': u'votes_url', 'isinstance': basestring},
+        {'name': u'votes_hash', 'isinstance': basestring},
+        {'name': u'extra', 'isinstance': list},
+    ]
+
+    for req in requirements:
+        if req['name'] not in data or not isinstance(data[req['name']],
+            req['isinstance']):
+            print req['name'], data.get(req['name'], None), type(data[req['name']])
+            return error(400, "invalid %s parameter" % req['name'])
+
+    if not re.match("^[a-zA-Z0-9_-]+$", data['session_id']):
+        return error(400, "invalid characters in session id")
+
+    if not data['votes_hash'].startswith("sha512://"):
+        return error(400, "invalid votes_hash, must be sha512")
+
+    session_id = data['session_id']
+    election = db.session.query(Election)\
+        .filter(Election.session_id == session_id).first()
+    if election is None:
+        return error(400, "unknown election with session_id = %s" % session_id)
+
+    task = SimpleTask(
+        receiver_url=app.config.get('ROOT_URL', ''),
+        action="tally_election",
+        queue="orchestra_director",
+        data={
+            'session_id': data['session_id'],
+            'callback_url': data['callback_url'],
+            'votes_url': data['votes_url'],
+            'votes_hash': data['votes_hash'],
+            'extra': data['extra']
+        }
+    )
+    task.create_and_send()
+    return make_response(dumps(dict(task_id=task.get_data()['id'])), 202)
+
 @public_api.route('/receive_election', methods=['POST'])
 def receive_election():
     '''
     This is a test route to be able to test that callbacks are correctly sent
     '''
     print "ATTENTION received election callback: "
+    print request.data
+    return make_response("", 202)
+
+
+@public_api.route('/receive_tally', methods=['POST'])
+def receive_tally():
+    '''
+    This is a test route to be able to test that callbacks are correctly sent
+    '''
+    print "ATTENTION received tally callback: "
     print request.data
     return make_response("", 202)

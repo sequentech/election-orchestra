@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import os
 import codecs
 import subprocess
@@ -62,6 +63,9 @@ def check_election_data(data, check_extra):
             req['isinstance']):
             print req['name'], data.get(req['name'], None), type(data[req['name']])
             raise TaskError(dict(reason="invalid %s parameter" % req['name']))
+
+    if not re.match("^[a-zA-Z0-9_-]+$", data['session_id']):
+        raise TaskError(dict(reason="invalid characters in session id"))
 
     if len(data['authorities']) == 0:
         raise TaskError(dict(reason='no authorities'))
@@ -231,7 +235,7 @@ def generate_private_info_verificatum(task):
     task.get_parent().set_output_data(protinfo_content,
                                       send_update_to_sender=True)
 
-@decorators.task(action="generate_public_key", queue="orchestra_performer")
+@decorators.task(action="generate_public_key", queue="verificatum_queue")
 def generate_public_key(task):
     '''
     Generates the local private info for a new election

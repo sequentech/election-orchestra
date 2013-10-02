@@ -21,7 +21,8 @@ ROOT_PATH = os.path.split(os.path.abspath(__file__))[0]
 SQLALCHEMY_DATABASE_URI = 'sqlite:///%s/db2.sqlite' % ROOT_PATH
 
 PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore2/private')
-PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore2/public')
+PUBLIC_DATA_PATH = '/srv/election-orchestra/server2/public'
+PUBLIC_DATA_BASE_URL = 'https://127.0.0.1:5001/public_data'
 
 SERVER_NAME = '127.0.0.1:5001'
 
@@ -38,3 +39,8 @@ SSL_CERT_PATH = '%s/certs/selfsigned2/cert.pem' % ROOT_PATH
 SSL_KEY_PATH = '%s/certs/selfsigned2/key-nopass.pem' % ROOT_PATH
 ALLOW_ONLY_SSL_CONNECTIONS = True
 
+QUEUES_OPTIONS = {
+    'verificatum_queue': {
+        'max_threads': 1,
+    }
+}
