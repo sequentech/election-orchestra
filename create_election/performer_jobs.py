@@ -252,4 +252,9 @@ def generate_public_key(task):
         protinfo_file.write(input_data['protInfo_content'])
         protinfo_file.close()
 
-    subprocess.check_call(["vmn", "-keygen", "publicKey"], cwd=election_private_path)
+    # generate raw public key
+    subprocess.check_call(["vmn", "-keygen", "publicKey_raw"], cwd=election_private_path)
+
+    # transform it into native format
+    subprocess.check_call(["vmnc", "-pkey", "-outi", "native", "publicKey_raw",
+                           "publicKey_native"], cwd=election_private_path)

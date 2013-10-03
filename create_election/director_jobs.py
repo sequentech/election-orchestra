@@ -200,15 +200,15 @@ def return_election(task):
 
     # read into a string the pubkey
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    pubkey_path = os.path.join(private_data_path, session_id, 'publicKey')
+    pubkey_path = os.path.join(private_data_path, session_id, 'publicKey_native')
     pubkey_file = open(pubkey_path, 'r')
-    pubkey = binascii.hexlify(pubkey_file.read())
+    pubkey = pubkey_file.read()
     pubkey_file.close()
 
     # publish the pubkey
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     pub_election_path = os.path.join(pubdata_path, session_id)
-    pubkey_path2 = os.path.join(pub_election_path, 'publicKey')
+    pubkey_path2 = os.path.join(pub_election_path, 'publicKey_native')
     if not os.path.exists(pub_election_path):
         mkdir_recursive(pub_election_path)
     shutil.copyfile(pubkey_path, pubkey_path2)

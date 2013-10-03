@@ -91,18 +91,16 @@ def review_tally(task):
     election_private_path = os.path.join(private_data_path, session_id)
 
     protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
-    pubkey_path = os.path.join(election_private_path, 'publicKey')
+    pubkey_path = os.path.join(election_private_path, 'publicKey_raw')
     if not os.path.exists(protinfo_path) or not os.path.exists(pubkey_path):
         raise TaskError(dict(reason="election not created"))
 
-    # if there have been previous tallies, move them somewhere
-    ciphertexts_path = os.path.join(election_private_path, 'ciphertexts')
-    i = 0
-    while os.path.exists(ciphertexts_path):
-        new_path = os.path.join(election_private_path, 'ciphertexts.%d' % i)
-        i += 1
-        if not os.path.exists(new_path):
-            shutil.move(ciphertexts_path, new_path)
+    # if there have been previous tally, remove
+    ciphertexts_path = os.path.join(election_private_path, 'ciphertexts_native')
+    prev_tallies = False
+    if os.path.exists(ciphertexts_path):
+        prev_tallies = True
+        os.unlink(ciphertexts_path)
 
     # reset securely
     subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
@@ -130,6 +128,10 @@ def review_tally(task):
     if input_hash != hash_file(ciphertexts_path):
         raise TaskError(dict(reason="invalid votes_hash"))
 
+    # transform ciphertexts into native
+    subprocess.check_call(["vmnc", "-ciphs", "-ini", "native", "ciphertexts_native",
+        "ciphertexts_raw"], cwd=election_private_path)
+
     # request user to decide
     label = "approve_election"
     info_text = """* URL: %(url)s
@@ -140,7 +142,7 @@ def review_tally(task):
 * Authorities: %(authorities)s""" % dict(
         url = election.url,
         title = election.title,
-        prev_tallies = i,
+        prev_tallies = repr(prev_tallies),
         description = election.description,
         start_date = election.voting_start_date.isoformat(),
         end_date = election.voting_end_date.isoformat(),
@@ -202,7 +204,7 @@ class PerformTallyTask(TaskHandler):
             protinfo_file.close()
 
         subprocess.check_call(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
-            "ciphertexts", "plaintexts"], cwd=election_private_path)
+            "ciphertexts_raw", "plaintexts_raw"], cwd=election_private_path)
 
     def handle_error(self, error):
         '''
@@ -233,13 +235,22 @@ def verify_and_publish_tally(task):
 
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
     election_private_path = os.path.join(private_data_path, session_id)
-    plaintexts_path = os.path.join(election_private_path, 'plaintexts')
+    plaintexts_raw_path = os.path.join(election_private_path, 'plaintexts_raw')
+    plaintexts_native_path = os.path.join(election_private_path, 'plaintexts_native')
     proofs_path = os.path.join(election_private_path, 'dir', 'roProof')
     protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
 
     # check that we have a tally
-    if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_path):
+    if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_raw_path):
         raise TaskError(dict(reason="proofs or plaintexts couldn't be verified"))
+
+    # remove any previous plaintexts_native
+    if os.path.exists(plaintexts_native_path):
+        os.unlink(plaintexts_native_path)
+
+    # transform plaintexts into native format
+    subprocess.check_call(["vmnc", "-plain", "-outi", "native", "plaintexts_raw",
+                           "plaintexts_native"], cwd=election_private_path)
 
     # verify the proofs. sometimes verificatum raises an exception at the end
     # so we dismiss it if the verification is successful. TODO: fix that in
@@ -258,19 +269,19 @@ def verify_and_publish_tally(task):
         mkdir_recursive(election_pubpath)
 
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
-    plaintexts_path2 = os.path.join(election_pubpath, 'plaintexts')
+    plaintexts_path2 = os.path.join(election_pubpath, 'plaintexts_native')
     if os.path.exists(tally_path):
         os.unlink(tally_path)
     if os.path.exists(plaintexts_path2):
         os.unlink(plaintexts_path2)
 
     # publish plaintexts
-    shutil.copy(plaintexts_path, plaintexts_path2)
+    shutil.copy(plaintexts_native_path, plaintexts_path2)
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
     tar = tarfile.open(tally_path, 'w')
-    tar.add(plaintexts_path, arcname="plaintexts")
+    tar.add(plaintexts_native_path, arcname="plaintexts_native")
     tar.add(proofs_path, arcname="proofs")
     tar.add(protinfo_path, "protInfo.xml")
     tar.close()
