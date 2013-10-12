@@ -113,7 +113,7 @@ def review_tally(task):
 
         # once we have checked that we have permissions to start doing the tally,
         # we can remove the "temporal" files of any previous tally
-        ciphertexts_path = os.path.join(session_privpath, 'ciphertexts_native')
+        ciphertexts_path = os.path.join(session_privpath, 'ciphertexts_json')
         cipherraw_path = os.path.join(session_privpath, 'ciphertexts_raw')
         if os.path.exists(ciphertexts_path):
             os.unlink(ciphertexts_path)
@@ -137,7 +137,7 @@ def review_tally(task):
 
     # write ciphertexts to disk
     # TODO FIXME: this needs to change in the future, see below
-    ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_native')
+    ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
     ciphertexts_file = open(ciphertexts_path, 'w')
     for chunk in r.iter_content(10*1024):
         ciphertexts_file.write(chunk)
@@ -148,12 +148,12 @@ def review_tally(task):
     if input_hash != hash_file(ciphertexts_path):
         raise TaskError(dict(reason="invalid votes_hash"))
 
-    # transform ciphertexts into native
+    # transform ciphertexts into json
     # TODO FIXME: This uses the same ciphs for all sessions! won't work with
     # more than one session. needs to be changed when we have a better format
     # for votes. we also have to check for the proof of knowledge, etc
     for session in election.sessions.all():
-        subprocess.check_call(["vmnc", "-ciphs", "-ini", "native",
+        subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
             ciphertexts_path, "ciphertexts_raw"], cwd=session_privpath)
         session_privpath = os.path.join(election_privpath, session.id)
 
@@ -317,7 +317,7 @@ def verify_and_publish_tally(task):
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         plaintexts_raw_path = os.path.join(session_privpath, 'plaintexts_raw')
-        plaintexts_native_path = os.path.join(session_privpath, 'plaintexts_native')
+        plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
 
@@ -325,13 +325,13 @@ def verify_and_publish_tally(task):
         if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_raw_path):
             raise TaskError(dict(reason="proofs or plaintexts couldn't be verified"))
 
-        # remove any previous plaintexts_native
-        if os.path.exists(plaintexts_native_path):
-            os.unlink(plaintexts_native_path)
+        # remove any previous plaintexts_json
+        if os.path.exists(plaintexts_json_path):
+            os.unlink(plaintexts_json_path)
 
-        # transform plaintexts into native format
-        subprocess.check_call(["vmnc", "-plain", "-outi", "native", "plaintexts_raw",
-                            "plaintexts_native"], cwd=session_privpath)
+        # transform plaintexts into json format
+        subprocess.check_call(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
+                            "plaintexts_json"], cwd=session_privpath)
 
         # verify the proofs. sometimes verificatum raises an exception at the end
         # so we dismiss it if the verification is successful. TODO: fix that in
@@ -345,15 +345,15 @@ def verify_and_publish_tally(task):
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
-    tar = tarfile.open(tally_path, 'w')
+    tar = tarfile.open(tally_path, 'w|gz')
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
-        plaintexts_native_path = os.path.join(session_privpath, 'plaintexts_native')
+        plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
 
-        tar.add(plaintexts_native_path,
-                arcname=os.path.join(session.id, 'plaintexts_native'))
+        tar.add(plaintexts_json_path,
+                arcname=os.path.join(session.id, 'plaintexts_json'))
         tar.add(proofs_path, arcname=os.path.join(session.id, "proofs"))
         tar.add(protinfo_path, arcname=os.path.join(session.id, "protInfo.xml"))
     tar.close()

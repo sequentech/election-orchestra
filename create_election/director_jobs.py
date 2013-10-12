@@ -250,19 +250,19 @@ def return_election(task):
     for session_id in session_ids:
         # read into a string the pubkey
         privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-        pubkey_path = os.path.join(privdata_path, election_id, session_id, 'publicKey_native')
+        pubkey_path = os.path.join(privdata_path, election_id, session_id, 'publicKey_json')
         pubkey_file = open(pubkey_path, 'r')
         pubkey = pubkey_file.read()
         pubkey_file.close()
         session_data.append(dict(
             session_id=session_id,
-            pubkey=pubkey
+            pubkey=json.loads(pubkey)
         ))
 
         # publish the pubkey
         pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
         pub_session_path = os.path.join(pubdata_path, election_id, session_id)
-        pubkey_path2 = os.path.join(pub_session_path, 'publicKey_native')
+        pubkey_path2 = os.path.join(pub_session_path, 'publicKey_json')
         if not os.path.exists(pub_session_path):
             mkdir_recursive(pub_session_path)
         shutil.copyfile(pubkey_path, pubkey_path2)

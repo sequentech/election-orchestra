@@ -313,7 +313,7 @@ def generate_public_key(task):
     if not os.path.exists(session_privpath):
         raise TaskError(dict(reason="invalid session_id / election_id"))
     if os.path.exists(os.path.join(session_privpath, 'publicKey_raw')) or\
-            os.path.exists(os.path.join(session_privpath, 'publicKey_native')):
+            os.path.exists(os.path.join(session_privpath, 'publicKey_json')):
         raise TaskError(dict(reason="pubkey already created"))
 
     # if it's not local, we have to create the merged protInfo.xml
@@ -326,18 +326,18 @@ def generate_public_key(task):
     # generate raw public key
     subprocess.check_call(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath)
 
-    # transform it into native format
-    subprocess.check_call(["vmnc", "-pkey", "-outi", "native", "publicKey_raw",
-                           "publicKey_native"], cwd=session_privpath)
+    # transform it into json format
+    subprocess.check_call(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
+                           "publicKey_json"], cwd=session_privpath)
 
-    # publish protInfo.xml and publicKey_native
+    # publish protInfo.xml and publicKey_json
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     session_pubpath = os.path.join(pubdata_path, election_id, session_id)
     if not os.path.exists(session_pubpath):
         mkdir_recursive(session_pubpath)
 
-    pubkey_privpath = os.path.join(session_privpath, 'publicKey_native')
-    pubkey_pubpath = os.path.join(session_pubpath, 'publicKey_native')
+    pubkey_privpath = os.path.join(session_privpath, 'publicKey_json')
+    pubkey_pubpath = os.path.join(session_pubpath, 'publicKey_json')
     shutil.copyfile(pubkey_privpath, pubkey_pubpath)
 
     protinfo_privpath = os.path.join(session_privpath, 'protInfo.xml')
