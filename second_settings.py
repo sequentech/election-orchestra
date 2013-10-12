@@ -39,6 +39,8 @@ SSL_CERT_PATH = '%s/certs/selfsigned2/cert.pem' % ROOT_PATH
 SSL_KEY_PATH = '%s/certs/selfsigned2/key-nopass.pem' % ROOT_PATH
 ALLOW_ONLY_SSL_CONNECTIONS = True
 
+AUTOACCEPT_REQUESTS = True
+
 QUEUES_OPTIONS = {
     'verificatum_queue': {
         'max_threads': 1,

@@ -33,7 +33,7 @@ from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
-from models import Election, Authority
+from models import Election, Authority, Session
 from utils import *
 
 BUF_SIZE = 10*1024
@@ -55,11 +55,12 @@ def review_tally(task):
     '''
     Generates the local private info for a new election
     '''
+    sender_ssl_cert = task.get_data()['sender_ssl_cert']
     data = task.get_data()['input_data']
 
     # check input data
     requirements = [
-        {'name': u'session_id', 'isinstance': basestring},
+        {'name': u'election_id', 'isinstance': basestring},
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
@@ -73,41 +74,58 @@ def review_tally(task):
             raise TaskError(dict(reason="invalid %s parameter" % req['name']))
 
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['session_id']):
-        raise TaskError(dict(reason="invalid characters in session id"))
+    if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
+        raise TaskError(dict(reason="invalid characters in election_id"))
 
     if not data['votes_hash'].startswith("sha512://"):
         raise TaskError(dict(reason="invalid votes_hash, must be sha512"))
 
     # check election has been created successfully
-    session_id = data['session_id']
+    election_id = data['election_id']
 
     election = db.session.query(Election)\
-        .filter(Election.session_id == session_id).first()
+        .filter(Election.id == election_id).first()
     if not election:
         raise TaskError(dict(reason="election not created"))
 
+    # check sender is legitimate
+    found_director = False
+    for auth in election.authorities.all():
+        if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+            found_director = True
+    if not found_director:
+        raise TaskError(dict(reason="review tally sent by an invalid authority"))
+
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_private_path = os.path.join(private_data_path, session_id)
+    election_privpath = os.path.join(private_data_path, election_id)
 
-    protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
-    pubkey_path = os.path.join(election_private_path, 'publicKey_raw')
-    if not os.path.exists(protinfo_path) or not os.path.exists(pubkey_path):
-        raise TaskError(dict(reason="election not created"))
+    tally_path = os.path.join(election_privpath, 'tally.tar.gz')
 
-    # if there have been previous tally, remove
-    ciphertexts_path = os.path.join(election_private_path, 'ciphertexts_native')
-    prev_tallies = False
-    if os.path.exists(ciphertexts_path):
-        prev_tallies = True
-        os.unlink(ciphertexts_path)
+    if not election.is_recurring and os.path.exists(tally_path):
+        raise TaskError(dict(reason="election already tallied"))
 
-    # reset securely
-    subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
-        cwd=election_private_path)
+    for session in election.sessions.all():
+        session_privpath = os.path.join(election_privpath, session.id)
+        protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+        pubkey_path = os.path.join(session_privpath, 'publicKey_raw')
+        if not os.path.exists(protinfo_path) or not os.path.exists(pubkey_path):
+            raise TaskError(dict(reason="election not created"))
+
+        # once we have checked that we have permissions to start doing the tally,
+        # we can remove the "temporal" files of any previous tally
+        ciphertexts_path = os.path.join(session_privpath, 'ciphertexts_native')
+        cipherraw_path = os.path.join(session_privpath, 'ciphertexts_raw')
+        if os.path.exists(ciphertexts_path):
+            os.unlink(ciphertexts_path)
+        if os.path.exists(cipherraw_path):
+            os.unlink(cipherraw_path)
+
+        # reset securely
+        subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
+            cwd=session_privpath)
 
     # if there were previous tallies, remove the tally approved flag file
-    approve_path = os.path.join(private_data_path, session_id, 'tally_approved')
+    approve_path = os.path.join(private_data_path, election_id, 'tally_approved')
     if os.path.exists(approve_path):
         os.unlink(approve_path)
 
@@ -118,6 +136,8 @@ def review_tally(task):
         raise TaskError(dict(reason="error downloading the votes"))
 
     # write ciphertexts to disk
+    # TODO FIXME: this needs to change in the future, see below
+    ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_native')
     ciphertexts_file = open(ciphertexts_path, 'w')
     for chunk in r.iter_content(10*1024):
         ciphertexts_file.write(chunk)
@@ -129,34 +149,46 @@ def review_tally(task):
         raise TaskError(dict(reason="invalid votes_hash"))
 
     # transform ciphertexts into native
-    subprocess.check_call(["vmnc", "-ciphs", "-ini", "native", "ciphertexts_native",
-        "ciphertexts_raw"], cwd=election_private_path)
+    # TODO FIXME: This uses the same ciphs for all sessions! won't work with
+    # more than one session. needs to be changed when we have a better format
+    # for votes. we also have to check for the proof of knowledge, etc
+    for session in election.sessions.all():
+        subprocess.check_call(["vmnc", "-ciphs", "-ini", "native",
+            ciphertexts_path, "ciphertexts_raw"], cwd=session_privpath)
+        session_privpath = os.path.join(election_privpath, session.id)
 
-    # request user to decide
-    label = "approve_election"
-    info_text = """* URL: %(url)s
+    autoaccept = app.config.get('AUTOACCEPT_REQUESTS', False)
+    if not autoaccept:
+        def str_date(date):
+            if date:
+                return date.isoformat()
+            else:
+                return ""
+
+        # request user to decide
+        label = "approve_election_tally"
+        info_text = """* URL: %(url)s
 * Title: %(title)s
 * Description: %(description)s
-* Voting period: %(start_date)s - %(end_date)s
-* Previous tallies: %(prev_tallies)s
+ * Voting period: %(start_date)s - %(end_date)s
 * Authorities: %(authorities)s""" % dict(
-        url = election.url,
-        title = election.title,
-        prev_tallies = repr(prev_tallies),
-        description = election.description,
-        start_date = election.voting_start_date.isoformat(),
-        end_date = election.voting_end_date.isoformat(),
-        authorities = dumps([auth.to_dict() for auth in election.authorities], indent=4)
-    )
-    approve_task = ExternalTask(label=label,
-        data=info_text)
-    check_approval_task = SimpleTask(
-        receiver_url=app.config.get('ROOT_URL', ''),
-        action="check_tally_approval",
-        queue="orchestra_performer",
-        data=dict(session_id=session_id))
-    task.add(approve_task)
-    task.add(check_approval_task)
+            url = election.url,
+            title = election.title,
+            description = election.description,
+            start_date = str_date(election.voting_start_date),
+            end_date = str_date(election.voting_end_date),
+            authorities = dumps([auth.to_dict() for auth in election.authorities], indent=4)
+        )
+        approve_task = ExternalTask(label=label,
+            data=info_text)
+        task.add(approve_task)
+
+        check_approval_task = SimpleTask(
+            receiver_url=app.config.get('ROOT_URL', ''),
+            action="check_tally_approval",
+            queue="orchestra_performer",
+            data=dict(election_id=election_id))
+        task.add(check_approval_task)
 
 @decorators.task(action="check_tally_approval", queue="orchestra_performer")
 @decorators.local_task
@@ -170,9 +202,9 @@ def check_tally_approval(task):
         raise TaskError(dict(reason="task not accepted"))
 
     input_data = task.get_data()['input_data']
-    session_id = input_data['session_id']
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    approve_path = os.path.join(private_data_path, session_id, 'tally_approved')
+    election_id = input_data['election_id']
+    privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
+    approve_path = os.path.join(privdata_path, election_id, 'tally_approved')
 
     # create the tally_approved flag file
     open(approve_path, 'a').close()
@@ -185,26 +217,43 @@ class PerformTallyTask(TaskHandler):
         Performs the tally in a synchronized way with the other authorities
         '''
         input_data = self.task.get_data()['input_data']
+        sender_ssl_cert = self.task.get_data()['sender_ssl_cert']
+        election_id = input_data['election_id']
         session_id = input_data['session_id']
 
-        private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-        election_private_path = os.path.join(private_data_path, session_id)
-        tally_approved_path = os.path.join(election_private_path, 'tally_approved')
+        if not re.match("^[a-zA-Z0-9_-]+$", election_id):
+            raise TaskError(dict(reason="invalid characters in election_id"))
+        if not re.match("^[a-zA-Z0-9_-]+$", session_id):
+            raise TaskError(dict(reason="invalid characters in session_id"))
+
+        election = db.session.query(Election)\
+            .filter(Election.id == election_id).first()
+        if not election:
+            raise TaskError(dict(reason="election not found"))
+
+        # check sender is legitimate
+        found_director = False
+        for auth in election.authorities.all():
+            if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+                found_director = True
+        if not found_director:
+            raise TaskError(dict(
+                reason="perform tally task sent by an invalid authority"))
+
+        privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
+        election_privpath = os.path.join(privdata_path, election_id)
+        session_privpath = os.path.join(election_privpath, session_id)
+        tally_approved_path = os.path.join(election_privpath, 'tally_approved')
 
         # check that we have approved the tally
-        if not os.path.exists(tally_approved_path):
-            raise TaskError(dict(reason="task not accepted"))
-
-        os.unlink(tally_approved_path)
-
-        protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
-        if not os.path.exists(protinfo_path):
-            protinfo_file = codecs.open(protinfo_path, 'w', encoding='utf-8')
-            protinfo_file.write(input_data['protInfo_content'])
-            protinfo_file.close()
+        autoaccept = app.config.get('AUTOACCEPT_REQUESTS', False)
+        if not autoaccept:
+            if not os.path.exists(tally_approved_path):
+                raise TaskError(dict(reason="task not accepted"))
+            os.unlink(tally_approved_path)
 
         subprocess.check_call(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
-            "ciphertexts_raw", "plaintexts_raw"], cwd=election_private_path)
+            "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath)
 
     def handle_error(self, error):
         '''
@@ -230,64 +279,86 @@ def verify_and_publish_tally(task):
     '''
     Once a tally has been performed, verify the result and if it's ok publish it
     '''
+    sender_ssl_cert = task.get_data()['sender_ssl_cert']
     input_data = task.get_data()['input_data']
-    session_id = input_data['session_id']
+    election_id = input_data['election_id']
+    if not re.match("^[a-zA-Z0-9_-]+$", election_id):
+        raise TaskError(dict(reason="invalid characters in election_id"))
 
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_private_path = os.path.join(private_data_path, session_id)
-    plaintexts_raw_path = os.path.join(election_private_path, 'plaintexts_raw')
-    plaintexts_native_path = os.path.join(election_private_path, 'plaintexts_native')
-    proofs_path = os.path.join(election_private_path, 'dir', 'roProof')
-    protinfo_path = os.path.join(election_private_path, 'protInfo.xml')
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not found"))
 
-    # check that we have a tally
-    if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_raw_path):
-        raise TaskError(dict(reason="proofs or plaintexts couldn't be verified"))
+    # check sender is legitimate
+    found_director = False
+    for auth in election.authorities.all():
+        if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+            found_director = True
+    if not found_director:
+        raise TaskError(dict(
+            reason="perform tally task sent by an invalid authority"))
 
-    # remove any previous plaintexts_native
-    if os.path.exists(plaintexts_native_path):
-        os.unlink(plaintexts_native_path)
-
-    # transform plaintexts into native format
-    subprocess.check_call(["vmnc", "-plain", "-outi", "native", "plaintexts_raw",
-                           "plaintexts_native"], cwd=election_private_path)
-
-    # verify the proofs. sometimes verificatum raises an exception at the end
-    # so we dismiss it if the verification is successful. TODO: fix that in
-    # verificatum
-    try:
-        output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
-    except subprocess.CalledProcessError, e:
-        output = e.output
-    if "Verification completed SUCCESSFULLY after" not in output:
-        raise TaskError(dict(reason="invalid tally proofs"))
-
-    # remove any previously published tally or plaintext files
+    privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_privpath = os.path.join(privdata_path, election_id)
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
-    election_pubpath = os.path.join(pubdata_path, session_id)
-    if not os.path.exists(election_pubpath):
-        mkdir_recursive(election_pubpath)
-
+    election_pubpath = os.path.join(pubdata_path, election_id)
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
-    plaintexts_path2 = os.path.join(election_pubpath, 'plaintexts_native')
-    if os.path.exists(tally_path):
-        os.unlink(tally_path)
-    if os.path.exists(plaintexts_path2):
-        os.unlink(plaintexts_path2)
+    tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha512')
 
-    # publish plaintexts
-    shutil.copy(plaintexts_native_path, plaintexts_path2)
+    # check election_pubpath already exists - it should contain pubkey etc
+    if not os.path.exists(election_pubpath):
+        raise TaskError(dict(reason="election public path doesn't exist"))
+
+    # check no tally exists yet
+    if os.path.exists(tally_path) and not election.is_recurring:
+        raise TaskError(dict(reason="tally already exists"))
+
+    for session in election.sessions.all():
+        session_privpath = os.path.join(election_privpath, session.id)
+        plaintexts_raw_path = os.path.join(session_privpath, 'plaintexts_raw')
+        plaintexts_native_path = os.path.join(session_privpath, 'plaintexts_native')
+        proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
+        protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+
+        # check that we have a tally
+        if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_raw_path):
+            raise TaskError(dict(reason="proofs or plaintexts couldn't be verified"))
+
+        # remove any previous plaintexts_native
+        if os.path.exists(plaintexts_native_path):
+            os.unlink(plaintexts_native_path)
+
+        # transform plaintexts into native format
+        subprocess.check_call(["vmnc", "-plain", "-outi", "native", "plaintexts_raw",
+                            "plaintexts_native"], cwd=session_privpath)
+
+        # verify the proofs. sometimes verificatum raises an exception at the end
+        # so we dismiss it if the verification is successful. TODO: fix that in
+        # verificatum
+        try:
+            output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
+        except subprocess.CalledProcessError, e:
+            output = e.output
+        if "Verification completed SUCCESSFULLY after" not in output:
+            raise TaskError(dict(reason="invalid tally proofs"))
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
     tar = tarfile.open(tally_path, 'w')
-    tar.add(plaintexts_native_path, arcname="plaintexts_native")
-    tar.add(proofs_path, arcname="proofs")
-    tar.add(protinfo_path, "protInfo.xml")
+    for session in election.sessions.all():
+        session_privpath = os.path.join(election_privpath, session.id)
+        plaintexts_native_path = os.path.join(session_privpath, 'plaintexts_native')
+        proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
+        protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+
+        tar.add(plaintexts_native_path,
+                arcname=os.path.join(session.id, 'plaintexts_native'))
+        tar.add(proofs_path, arcname=os.path.join(session.id, "proofs"))
+        tar.add(protinfo_path, arcname=os.path.join(session.id, "protInfo.xml"))
     tar.close()
 
     # and publish also the sha512 of the tarball
-    tally_hash_path = os.path.join(pubdata_path, session_id, 'tally.tar.gz.sha512')
     tally_hash_file = open(tally_hash_path, 'w')
     tally_hash_file.write(hash_file(tally_path))
     tally_hash_file.close()

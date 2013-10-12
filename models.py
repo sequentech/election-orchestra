@@ -26,9 +26,10 @@ from frestq.app import db
 
 class Election(db.Model):
     '''
-    Represents an election
+    Represents an election, with multiple possible questions, each of them
+    will be tallied separatedly with its own session (and its own pubkey).
     '''
-    session_id = db.Column(db.Unicode(255), primary_key=True)
+    id = db.Column(db.Unicode(255), primary_key=True)
 
     is_recurring = db.Column(db.Boolean)
 
@@ -47,7 +48,7 @@ class Election(db.Model):
     description = db.Column(db.UnicodeText)
 
     # converted into and from JSON
-    question_data = db.Column(db.UnicodeText)
+    questions_data = db.Column(db.UnicodeText)
 
     voting_start_date = db.Column(db.DateTime)
 
@@ -56,10 +57,6 @@ class Election(db.Model):
     status = db.Column(db.Unicode(128))
 
     callback_url = db.Column(db.Unicode(1024))
-
-    public_key = db.Column(db.UnicodeText)
-
-    protinfo_filepath = db.Column(db.Unicode(1024))
 
     def __init__(self, **kwargs):
         for key, value in kwargs.iteritems():
@@ -74,15 +71,13 @@ class Election(db.Model):
         '''
         ret = {
             'title': self.title,
-            'session_id': self.session_id,
+            'id': self.id,
             'is_recurring': self.is_recurring,
             'num_parties': self.num_parties,
             'threshold_parties': self.threshold_parties,
             'created_at': self.created_at,
             'last_updated_at': self.last_updated_at,
             'status': self.status,
-            'public_key': self.public_key,
-            #'protinfo_filepath': self.protinfo_filepath, TODO
             'callback_url': self.callback_url
         }
 
@@ -90,6 +85,43 @@ class Election(db.Model):
             ret['authorities'] = [a.to_dict() for a in self.authorities]
 
         return ret
+
+
+class Session(db.Model):
+    '''
+    Refers verificatum session, with its own public key and protinfo
+    '''
+    id = db.Column(db.Unicode(255), primary_key=True)
+
+    election_id = db.Column(db.Unicode(255), db.ForeignKey('election.id'))
+
+    question_number = db.Column(db.Integer)
+
+    election = db.relationship('Election',
+        backref=db.backref('sessions', lazy='dynamic', order_by=question_number))
+
+    status = db.Column(db.Unicode(128))
+
+    public_key = db.Column(db.UnicodeText)
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return '<Session %r>' % self.title
+
+    def to_dict(self, full=False):
+        '''
+        Return an individual instance as a dictionary.
+        '''
+        return {
+            'id': self.id,
+            'election_id': self.election_id,
+            'status': self.status,
+            'public_key': self.public_key,
+            'question_number': self.question_number
+        }
 
 
 class Authority(db.Model):
@@ -105,7 +137,7 @@ class Authority(db.Model):
 
     orchestra_url = db.Column(db.Unicode(1024))
 
-    session_id = db.Column(db.Unicode(255), db.ForeignKey('election.session_id'))
+    election_id = db.Column(db.Unicode(255), db.ForeignKey('election.id'))
 
     election = db.relationship('Election',
         backref=db.backref('authorities', lazy='dynamic'))
@@ -130,98 +162,5 @@ class Authority(db.Model):
             'name': self.name,
             'ssl_cert': self.ssl_cert,
             'orchestra_url': self.orchestra_url,
-            'session_id': self.session_id
+            'election_id': self.election_id
         }
-
-
-class AuthoritySession(db.Model):
-    '''
-    Represent the information related to an authority in a tally
-    '''
-    id = db.Column(db.Integer, primary_key=True)
-
-    authority_id = db.Column(db.Integer, db.ForeignKey('authority.id'))
-
-    status = db.Column(db.Unicode(128))
-
-    authority = db.relationship('Authority',
-        backref=db.backref('sessions', lazy='dynamic'))
-
-    tally_id = db.Column(db.Integer, db.ForeignKey('tally.id'))
-
-    tally = db.relationship('Tally',
-        backref=db.backref('authority_sessions', lazy='dynamic'))
-
-    verificatum_server_url = db.Column(db.Unicode(1024))
-
-    verificatum_hint_server_url = db.Column(db.Unicode(1024))
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    session_expirates_at = db.Column(db.DateTime)
-
-    tally_filepath = db.Column(db.Unicode(1024))
-
-    def __repr__(self):
-        return '<AuthoritySession %r>' % self.authority.name
-
-
-class Tally(db.Model):
-    '''
-    Represents an authority's tally
-    '''
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    name = db.Column(db.Unicode(255))
-
-    status = db.Column(db.Unicode(128))
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    votes_url = db.Column(db.Unicode(1024))
-
-    votes_filepath = db.Column(db.Unicode(1024))
-
-    tally_filepath = db.Column(db.Unicode(1024))
-
-    def __repr__(self):
-        return '<Authority %r>' % self.name
-
-    def to_dict(self):
-        '''
-        Return an individual instance as a dictionary.
-        '''
-        return {
-            'id': self.id,
-            'created_at': self.created_at,
-            'last_updated_at': self.last_updated_at,
-            'status': self.status,
-            'election_id': self.election_id,
-            'votes_url': self.election_id,
-            #'votes_filepath': self.votes_filepath,
-            #'tally_filepath': self.tally_filepath,
-        }
-
-class Vote(db.Model):
-    '''
-    Represents a vote. This is used to forbid tallying the same vote twice if
-    the election is not recurring.
-    '''
-    id = db.Column(db.Integer, primary_key=True)
-
-    vote_hash = db.Column(db.Unicode(1024))
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    session_id = db.Column(db.Unicode(255), db.ForeignKey('election.session_id'))
-
-    election = db.relationship('Election',
-        backref=db.backref('votes', lazy='dynamic'))
-
-    def __repr__(self):
-        return '<Vote %r>' % self.vote_hash

@@ -49,19 +49,19 @@ def post_election():
     Example request:
     POST /election
     {
-        "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+        "election_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
         "is_recurring": false,
         "callback_url": "http://example.com/callback_create_election",
         "extra": [],
         "title": "New Directive Board",
         "url": "https://example.com/election/url",
         "description": "election description",
-        "question_data": {
+        "questions_data": [{
             "question": "Who Should be President?",
             "tally_type": "ONE_CHOICE",
             "answers": ["Alice", "Bob"],
             "max": 1, "min": 0
-        },
+        }],
         "voting_start_date": "2012-12-06T18:17:14.457000",
         "voting_end_date": "2012-12-06T18:17:14.457000",
         "authorities": [
@@ -101,13 +101,13 @@ def post_election():
     {
         "status": "finished",
         "reference": {
-            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "election_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
             "action": "POST /election"
         },
-        "data": {
-            "protinfo": "<protInfo_content>",
-            "publickey": "<pubkey codified in hexadecimal>"
-        }
+        "session_data": [{
+            "session_id": "deadbeef-03fa-4890-aa83-2fc558e645b5",
+            "publickey": ["<pubkey codified in hexadecimal>"]
+        }]
     }
 
     Note that this protInfo.xml will contain the election public key, but
@@ -141,11 +141,11 @@ def post_election():
         return error(400, e.data['reason'])
 
     e = Election(
-        session_id = data['session_id'],
+        id = data['election_id'],
         title = data['title'],
         url = data['url'],
         description = data['description'],
-        question_data = dumps(data['question_data']),
+        questions_data = dumps(data['questions_data']),
         voting_start_date = data['voting_start_date'],
         voting_end_date = data['voting_end_date'],
         is_recurring = data['is_recurring'],
@@ -161,7 +161,7 @@ def post_election():
             name = auth_data['name'],
             ssl_cert = auth_data['ssl_cert'],
             orchestra_url = auth_data['orchestra_url'],
-            session_id = data['session_id']
+            election_id = data['election_id']
         )
         db.session.add(authority)
     db.session.commit()
@@ -171,7 +171,7 @@ def post_election():
         action="create_election",
         queue="orchestra_director",
         data={
-            'session_id': data['session_id']
+            'election_id': data['election_id']
         }
     )
     task.create_and_send()
@@ -190,7 +190,7 @@ def post_tally():
     Example request:
     POST /tally
     {
-        "session_id": "vota4",
+        "election_id": "vota4",
         "callback_url": "https://127.0.0.1:5000/public_api/receive_tally",
         "extra": [],
         "votes_url": "https://127.0.0.1:5000/public_data/vota4/encrypted_ciphertexts",
@@ -210,7 +210,7 @@ def post_tally():
     {
         "status": "finished",
         "reference": {
-            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "election_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
             "action": "POST /tally"
         },
         "data": {
@@ -224,7 +224,7 @@ def post_tally():
     {
         "status": "error",
         "reference": {
-            "session_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
+            "election_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
             "action": "POST /tally"
         },
         "data": {
@@ -239,7 +239,7 @@ def post_tally():
     except:
         return error(400, "invalid json")
     requirements = [
-        {'name': u'session_id', 'isinstance': basestring},
+        {'name': u'election_id', 'isinstance': basestring},
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
@@ -252,24 +252,24 @@ def post_tally():
             print req['name'], data.get(req['name'], None), type(data[req['name']])
             return error(400, "invalid %s parameter" % req['name'])
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['session_id']):
-        return error(400, "invalid characters in session id")
+    if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
+        return error(400, "invalid characters in election id")
 
     if not data['votes_hash'].startswith("sha512://"):
         return error(400, "invalid votes_hash, must be sha512")
 
-    session_id = data['session_id']
+    election_id = data['election_id']
     election = db.session.query(Election)\
-        .filter(Election.session_id == session_id).first()
+        .filter(Election.id == election_id).first()
     if election is None:
-        return error(400, "unknown election with session_id = %s" % session_id)
+        return error(400, "unknown election with election_id = %s" % election_id)
 
     task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
         action="tally_election",
         queue="orchestra_director",
         data={
-            'session_id': data['session_id'],
+            'election_id': data['election_id'],
             'callback_url': data['callback_url'],
             'votes_url': data['votes_url'],
             'votes_hash': data['votes_hash'],

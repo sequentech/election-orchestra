@@ -22,11 +22,12 @@ import subprocess
 
 from frestq import decorators
 from frestq.utils import loads, dumps
-from frestq.tasks import SimpleTask, ParallelTask, SynchronizedTask, TaskError
+from frestq.tasks import (SimpleTask, ParallelTask, SequentialTask,
+                          SynchronizedTask, TaskError)
 from frestq.action_handlers import TaskHandler, SynchronizedTaskHandler
 from frestq.app import app, db
 
-from models import Election, Authority
+from models import Election, Authority, Session
 from utils import mkdir_recursive
 
 @decorators.local_task
@@ -34,11 +35,15 @@ from utils import mkdir_recursive
 class TallyElectionTask(TaskHandler):
     def execute(self):
         data = self.task.get_data()['input_data']
-        session_id = data['session_id']
+        election_id = data['election_id']
         election = db.session.query(Election)\
-            .filter(Election.session_id == session_id).first()
+            .filter(Election.id == election_id).first()
 
-        # first, let all authorities download the votes and review the requested
+        session_ids = [s.id for s in db.session.query(Session).\
+                with_parent(election,"sessions").\
+                order_by(Session.question_number)]
+
+        # 1. let all authorities download the votes and review the requested
         # tally
         parallel_task = ParallelTask()
         for authority in election.authorities:
@@ -47,7 +52,7 @@ class TallyElectionTask(TaskHandler):
                 action="review_tally",
                 queue="orchestra_performer",
                 data={
-                    'session_id': data['session_id'],
+                    'election_id': data['election_id'],
                     'callback_url': data['callback_url'],
                     'votes_url': data['votes_url'],
                     'votes_hash': data['votes_hash'],
@@ -58,24 +63,28 @@ class TallyElectionTask(TaskHandler):
             parallel_task.add(review_task)
         self.task.add(parallel_task)
 
-        # once all the authorities have reviewed and accepted the tally, then
-        # launch verificatum to perform it
-        sync_task = SynchronizedTask()
-        self.task.add(sync_task)
-        for authority in election.authorities:
-            auth_task = SimpleTask(
-                receiver_url=authority.orchestra_url,
-                action="perform_tally",
-                queue="verificatum_queue",
-                data={
-                    'session_id': data['session_id'],
-                },
-                receiver_ssl_cert=authority.ssl_cert
-            )
-            sync_task.add(auth_task)
+        # 2. once all the authorities have reviewed and accepted the tallies
+        # (one per question/session), launch verificatum to perform it
+        seq_task = SequentialTask()
+        self.task.add(seq_task)
+        for session_id in session_ids:
+            sync_task = SynchronizedTask()
+            seq_task.add(sync_task)
+            for authority in election.authorities:
+                auth_task = SimpleTask(
+                    receiver_url=authority.orchestra_url,
+                    action="perform_tally",
+                    queue="verificatum_queue",
+                    data={
+                        'election_id': data['election_id'],
+                        'session_id': session_id
+                    },
+                    receiver_ssl_cert=authority.ssl_cert
+                )
+                sync_task.add(auth_task)
 
         # once the mixing phase has been done, let all the authorities verify
-        # the result and publish it
+        # the results and publish them
         parallel_task = ParallelTask()
         for authority in election.authorities:
             review_task = SimpleTask(
@@ -83,7 +92,8 @@ class TallyElectionTask(TaskHandler):
                 action="verify_and_publish_tally",
                 queue="orchestra_performer",
                 data={
-                    'session_id': data['session_id'],
+                    'election_id': data['election_id'],
+                    'session_ids': session_ids,
                 },
                 receiver_ssl_cert=authority.ssl_cert
             )
@@ -106,17 +116,17 @@ class TallyElectionTask(TaskHandler):
         '''
         session = requests.sessions.Session()
         input_data = self.task.get_data()['input_data']
-        session_id = input_data['session_id']
+        election_id = input_data['election_id']
         callback_url = input_data['callback_url']
         election = db.session.query(Election)\
-            .filter(Election.session_id == session_id).first()
+            .filter(Election.id == election_id).first()
 
         session = requests.sessions.Session()
         callback_url = election.callback_url
         fail_data = {
             "status": "error",
             "reference": {
-                "session_id": session_id,
+                "election_id": election_id,
                 "action": "POST /tally"
             },
             "data": {
@@ -131,14 +141,14 @@ class TallyElectionTask(TaskHandler):
 @decorators.task(action="return_tally", queue="orchestra_director")
 def return_election(task):
     input_data = task.get_parent().get_data()['input_data']
-    session_id = input_data['session_id']
+    election_id = input_data['election_id']
     callback_url = input_data['callback_url']
 
     pub_data_url = app.config.get('PUBLIC_DATA_BASE_URL', '')
-    tally_url = pub_data_url + '/' + session_id + '/tally.tar.gz'
+    tally_url = pub_data_url + '/' + election_id + '/tally.tar.gz'
 
     pub_data_path = app.config.get('PUBLIC_DATA_PATH', '')
-    tally_hash_path = os.path.join(pub_data_path, session_id, 'tally.tar.gz.sha512')
+    tally_hash_path = os.path.join(pub_data_path, election_id, 'tally.tar.gz.sha512')
 
     f = open(tally_hash_path, 'r')
     tally_hash = f.read()
@@ -147,7 +157,7 @@ def return_election(task):
     ret_data = {
         "status": "finished",
         "reference": {
-            "session_id": session_id,
+            "election_id": election_id,
             "action": "POST /tally"
         },
         "data": {
