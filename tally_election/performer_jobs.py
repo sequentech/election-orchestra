@@ -121,8 +121,8 @@ def review_tally(task):
             os.unlink(cipherraw_path)
 
         # reset securely
-        subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
-            cwd=session_privpath)
+        subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml",
+            "-f"], cwd=session_privpath)
 
     # if there were previous tallies, remove the tally approved flag file
     approve_path = os.path.join(private_data_path, election_id, 'tally_approved')
@@ -136,7 +136,6 @@ def review_tally(task):
         raise TaskError(dict(reason="error downloading the votes"))
 
     # write ciphertexts to disk
-    # TODO FIXME: this needs to change in the future, see below
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
     ciphertexts_file = open(ciphertexts_path, 'w')
     for chunk in r.iter_content(10*1024):
@@ -148,14 +147,45 @@ def review_tally(task):
     if input_hash != hash_file(ciphertexts_path):
         raise TaskError(dict(reason="invalid votes_hash"))
 
-    # transform ciphertexts into json
-    # TODO FIXME: This uses the same ciphs for all sessions! won't work with
-    # more than one session. needs to be changed when we have a better format
-    # for votes. we also have to check for the proof of knowledge, etc
+    # transform input votes into something readable by verificatum. Basically
+    # we read each line of the votes file, which corresponds with a ballot,
+    # and split each choice to each session
+    # So basically each input line looks like:
+    # {"choices": [vote_for_session1, vote_for_session2, [...]], "proofs": []}
+    #
+    # And we generate N ciphertexts_json files, each of which, for each of
+    # those lines input lines, will contain a line with vote_for_session<i>.
+    # NOTE: This is the inverse of what the demociphs.py script does
+    invotes_file = None
+    outvotes_files = []
+    try:
+        invotes_file = open(ciphertexts_path, 'r')
+        for session in election.sessions.all():
+            outvotes_path = os.path.join(election_privpath, session.id,
+                'ciphertexts_json')
+            outvotes_files.append(open(outvotes_path, 'w'))
+        for line in invotes_file:
+            line_data = json.loads(line)
+            i = 0
+            assert len(line_data['choices']) == len(outvotes_files)
+            for choice in line_data['choices']:
+                # NOTE: we use specific separators with no spaces, because
+                # otherwise verificatum won't read it well
+                outvotes_files[i].write(json.dumps(choice,
+                    separators=(",", ":")))
+                outvotes_files[i].write("\n")
+                i += 1
+    finally:
+        if invotes_file is not None:
+            invotes_file.close()
+        for f in outvotes_files:
+            f.close()
+
+    # Convert each ciphertexts_json of each session into ciphertexts_raw
     for session in election.sessions.all():
-        subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
-            ciphertexts_path, "ciphertexts_raw"], cwd=session_privpath)
         session_privpath = os.path.join(election_privpath, session.id)
+        subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
+            "ciphertexts_json", "ciphertexts_raw"], cwd=session_privpath)
 
     autoaccept = app.config.get('AUTOACCEPT_REQUESTS', False)
     if not autoaccept:

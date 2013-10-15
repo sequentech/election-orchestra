@@ -25,7 +25,7 @@ import sha512
 
 NUM_DEMO_CIPHS = 100
 VOTES_FILENAME = 'votes'
-BASE_URL = 'https://127.0.0.1:5000/'
+BASE_URL = 'https://127.0.0.1:5000'
 
 def rm_if_exists(path):
     if os.path.exists(path):
@@ -76,7 +76,8 @@ if __name__ == "__main__":
             choices.append(json.loads(fi.readline()))
 
         ballot = dict(choices=choices, proofs=[])
-        f.write(json.dumps(ballot)  + "\n")
+        f.write(json.dumps(ballot))
+        f.write("\n")
 
     # close all files
     f.close()
