@@ -34,8 +34,9 @@ def hash_file(file_path):
     f.close()
     return hash.hexdigest()
 
-if len(sys.argv) < 2:
-    print "usage: %s <file-path> to obtain the sha512sum" % sys.argv[0]
-    exit(1)
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "usage: %s <file-path> to obtain the sha512sum" % sys.argv[0]
+        exit(1)
 
-print "sha512 hash of ", sys.argv[1], "= ", hash_file(sys.argv[1])
+    print "sha512 hash of ", sys.argv[1], "= ", hash_file(sys.argv[1])
