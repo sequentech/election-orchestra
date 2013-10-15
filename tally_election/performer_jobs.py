@@ -375,20 +375,65 @@ def verify_and_publish_tally(task):
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
-    tar = tarfile.open(tally_path, 'w|gz')
+    # NOTE: we try our best to do a deterministic tally, i.e. one that can be
+    # generated exactly the same bit by bit by all authorities
+
+    # For example, here we open tarfile setting cwd so that the header of the
+    # tarfile doesn't contain the full path, which would make the tally.tar.gz
+    # not deterministic as it might vary from authority to authority
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.dirname(tally_path))
+        tar = tarfile.open(os.path.basename(tally_path), 'w|gz')
+    finally:
+        os.chdir(cwd)
+    timestamp = int(task.get_data()["created_date"].date().strftime("%s"))
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
 
-        tar.add(plaintexts_json_path,
-                arcname=os.path.join(session.id, 'plaintexts_json'))
-        tar.add(proofs_path, arcname=os.path.join(session.id, "proofs"))
-        tar.add(protinfo_path, arcname=os.path.join(session.id, "protInfo.xml"))
+        deterministic_tar_add(tar, plaintexts_json_path,
+            os.path.join(session.id, 'plaintexts_json'), timestamp)
+        deterministic_tar_add(tar, proofs_path,
+            os.path.join(session.id, "proofs"), timestamp)
+        deterministic_tar_add(tar, protinfo_path,
+            os.path.join(session.id, "protInfo.xml"), timestamp)
     tar.close()
 
     # and publish also the sha512 of the tarball
     tally_hash_file = open(tally_hash_path, 'w')
     tally_hash_file.write(hash_file(tally_path))
     tally_hash_file.close()
+
+def deterministic_tarinfo(tfile, filepath, arcname, timestamp, uid=1000, gid=100):
+    '''
+    Creates a tarinfo with some fixed data
+    '''
+    tarinfo = tfile.gettarinfo(filepath, arcname)
+    tarinfo.uid = uid
+    tarinfo.gid = gid
+    tarinfo.uname = ""
+    tarinfo.gname = ""
+    tarinfo.mtime = timestamp
+    return tarinfo
+
+def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100):
+    '''
+    tries its best to do a deterministic add of the file
+    '''
+    tinfo = deterministic_tarinfo(tfile, filepath, arcname, timestamp,
+        uid, gid)
+    if tinfo.isreg():
+         with open(filepath, "rb") as f:
+            tfile.addfile(tinfo, f)
+    else:
+        tfile.addfile(tinfo)
+
+    if os.path.isdir(filepath):
+        for subitem in os.listdir(filepath):
+            newpath = os.path.join(filepath, subitem)
+            newarcname = os.path.join(arcname, subitem)
+            deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
+                gid)
