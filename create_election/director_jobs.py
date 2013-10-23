@@ -89,6 +89,7 @@ class CreateElectionTask(TaskHandler):
         for authority in election.authorities:
             subtask = SimpleTask(
                 receiver_url=authority.orchestra_url,
+                receiver_ssl_cert=authority.ssl_cert,
                 action="generate_private_info",
                 queue="orchestra_performer",
                 data=dict(
