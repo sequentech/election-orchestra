@@ -279,7 +279,7 @@ def return_election(task):
     ret_data = {
         "status": "finished",
         "reference": {
-            "session_id": election_id,
+            "election_id": election_id,
             "action": "POST /election"
         },
         "session_data": session_data
@@ -288,3 +288,4 @@ def return_election(task):
     print dumps(ret_data)
     r = session.request('post', callback_url, data=dumps(ret_data),
                         verify=False)
+    print r.text
