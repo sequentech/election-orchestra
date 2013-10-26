@@ -40,24 +40,9 @@ def get_server_url():
     return "%s:%d" % (app.config.get('VERIFICATUM_SERVER_URL', ''),
         app.config.get('VERIFICATUM_SERVER_PORT_RANGE', '')[0])
 
-
-def get_local_server_url():
-    '''
-    Return a local server url that can be used
-    '''
-    return "http://127.0.0.1:%d" % app.config.get('VERIFICATUM_SERVER_PORT_RANGE', '')[0]
-
-
 def get_hint_server_url():
     '''
     Return a hint server url that can be used
     '''
     return "%s:%d" % (app.config.get('VERIFICATUM_HINT_SERVER_SOCKET', ''),
         app.config.get('VERIFICATUM_HINT_SERVER_PORT_RANGE', '')[0])
-
-
-def get_local_hint_server_url():
-    '''
-    Return a local hint server url that can be used
-    '''
-    return "127.0.0.1:%d" % app.config.get('VERIFICATUM_HINT_SERVER_PORT_RANGE', '')[0]

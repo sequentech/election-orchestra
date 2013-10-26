@@ -276,9 +276,7 @@ def generate_private_info_verificatum(task):
 
     # this are an "indicative" url, because port can vary later on
     server_url = get_server_url()
-    local_server_url = get_local_server_url()
     hint_server_url = get_hint_server_url()
-    local_hint_server_url = get_local_hint_server_url()
 
     # generate localProtInfo.xml
     protinfos = []
@@ -288,8 +286,7 @@ def generate_private_info_verificatum(task):
         stub_path = os.path.join(session_privpath, 'stub.xml')
 
         l = ["vmni", "-party", "-arrays", "file", "-name", auth_name, "-http",
-            server_url, "-httpl", local_server_url, "-hint", hint_server_url,
-            "-hintl", local_hint_server_url]
+            server_url, "-hint", hint_server_url]
         subprocess.check_call(l, cwd=session_privpath)
 
         # 5. read local protinfo file to be sent back to the orchestra director
