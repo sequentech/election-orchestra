@@ -122,7 +122,6 @@ class TallyElectionTask(TaskHandler):
             .filter(Election.id == election_id).first()
 
         session = requests.sessions.Session()
-        callback_url = election.callback_url
         fail_data = {
             "status": "error",
             "reference": {
@@ -135,6 +134,7 @@ class TallyElectionTask(TaskHandler):
         }
         r = session.request('post', callback_url, data=dumps(fail_data),
                             verify=False)
+        print r.text
 
 
 @decorators.local_task
@@ -162,9 +162,10 @@ def return_election(task):
         },
         "data": {
             "tally_url": tally_url,
-            "tally_hash": tally_hash
+            "tally_hash": "sha512://" + tally_hash
         }
     }
     session = requests.sessions.Session()
     r = session.request('post', callback_url, data=dumps(ret_data),
                         verify=False)
+    print r.text
