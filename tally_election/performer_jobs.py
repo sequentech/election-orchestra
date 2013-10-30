@@ -24,6 +24,7 @@ import subprocess
 import json
 import requests
 import shutil
+from agora_tally import tally
 from datetime import datetime
 
 from frestq.app import app, db
@@ -331,6 +332,7 @@ def verify_and_publish_tally(task):
 
     privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
     election_privpath = os.path.join(privdata_path, election_id)
+
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     election_pubpath = os.path.join(pubdata_path, election_id)
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
@@ -373,6 +375,11 @@ def verify_and_publish_tally(task):
         if "Verification completed SUCCESSFULLY after" not in output:
             raise TaskError(dict(reason="invalid tally proofs"))
 
+    result = tally.do_tally(election_privpath, json.loads(election.questions_data))
+    result_privpath = os.path.join(election_privpath, 'result_json')
+    with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
+        res_f.write(json.dumps(result))
+
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
     # NOTE: we try our best to do a deterministic tally, i.e. one that can be
@@ -388,6 +395,8 @@ def verify_and_publish_tally(task):
     finally:
         os.chdir(cwd)
     timestamp = int(task.get_data()["created_date"].date().strftime("%s"))
+
+    deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
@@ -401,6 +410,7 @@ def verify_and_publish_tally(task):
         deterministic_tar_add(tar, protinfo_path,
             os.path.join(session.id, "protInfo.xml"), timestamp)
     tar.close()
+
 
     # and publish also the sha512 of the tarball
     tally_hash_file = open(tally_hash_path, 'w')
