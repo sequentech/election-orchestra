@@ -2,3 +2,5 @@ flask
 flask-sqlalchemy
 git+https://github.com/agoraciudadana/frestq.git
 git+https://github.com/edulix/requests.git#egg=requests
+git+https://github.com/OpenTechStrategies/openstv.git
+git+https://github.com/agoraciudadana/agora-tally.git
