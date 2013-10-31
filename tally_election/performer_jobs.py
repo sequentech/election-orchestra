@@ -346,12 +346,18 @@ def verify_and_publish_tally(task):
     if os.path.exists(tally_path) and not election.is_recurring:
         raise TaskError(dict(reason="tally already exists"))
 
+    pubkeys = []
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         plaintexts_raw_path = os.path.join(session_privpath, 'plaintexts_raw')
         plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+
+        pubkey_path = os.path.join(privdata_path, election_id, session.id, 'publicKey_json')
+        with open(pubkey_path, 'r') as pubkey_file:
+            pubkeys.append(json.loads(pubkey_file.read()))
+            pubkey_file.close()
 
         # check that we have a tally
         if not os.path.exists(proofs_path) or not os.path.exists(plaintexts_raw_path):
@@ -396,7 +402,16 @@ def verify_and_publish_tally(task):
         os.chdir(cwd)
     timestamp = int(task.get_data()["created_date"].date().strftime("%s"))
 
+    ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
+    pubkeys_path = os.path.join(privdata_path, election_id, 'pubkeys_json')
+
+    with open(pubkeys_path, mode='w') as pubkeys_f:
+        pubkeys_f.write(json.dumps(pubkeys))
+
     deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
+    deterministic_tar_add(tar, ciphertexts_path, 'ciphertexts_json', timestamp)
+    deterministic_tar_add(tar, pubkeys_path, 'pubkeys_json', timestamp)
+
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
