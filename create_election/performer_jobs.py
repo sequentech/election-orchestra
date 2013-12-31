@@ -324,7 +324,8 @@ def generate_public_key(task):
         protinfo_file.close()
 
     # generate raw public key
-    subprocess.check_call(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath)
+    call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
+             timeout=10*60, check_ret=0)
 
     # transform it into json format
     subprocess.check_call(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",

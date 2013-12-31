@@ -16,10 +16,13 @@
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import signal
+import time
 import subprocess
 import hashlib
 
 from frestq.app import app
+from asyncproc import Process
 
 def mkdir_recursive(path):
     if not os.path.exists(path):
@@ -46,3 +49,36 @@ def get_hint_server_url():
     '''
     return "%s:%d" % (app.config.get('VERIFICATUM_HINT_SERVER_SOCKET', ''),
         app.config.get('VERIFICATUM_HINT_SERVER_PORT_RANGE', '')[0])
+
+def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
+    '''
+    Utility to call a command.
+    timeout is in seconds.
+    '''
+    print("calling to " + " ".join(cmd))
+    p = Process(cmd, cwd=cwd, stderr=subprocess.STDOUT)
+    launch_time = time.clock()
+    output = ""
+
+    while True:
+        # check to see if process has ended
+        ret = p.wait(os.WNOHANG)
+        # print any new output
+        o = p.read()
+        print("output = %s" % o)
+
+        if output_filter:
+            output_filter(p, o, output)
+        output += o
+        time.sleep(1)
+
+        if ret is not None:
+            if check_ret is not None:
+                assert check_ret == ret
+            return ret, output
+
+        if timeout > 0 and time.clock() - launch_time > timeout:
+            p.kill(signal.SIGKILL)
+            if check_ret is not None:
+                assert check_ret == -1
+            return -1, output

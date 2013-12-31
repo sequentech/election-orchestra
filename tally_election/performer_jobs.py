@@ -283,8 +283,9 @@ class PerformTallyTask(TaskHandler):
                 raise TaskError(dict(reason="task not accepted"))
             os.unlink(tally_approved_path)
 
-        subprocess.check_call(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
-            "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath)
+        call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
+            "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
+            timeout=5*3600, check_ret=0)
 
     def handle_error(self, error):
         '''
@@ -368,8 +369,9 @@ def verify_and_publish_tally(task):
             os.unlink(plaintexts_json_path)
 
         # transform plaintexts into json format
-        subprocess.check_call(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
-                            "plaintexts_json"], cwd=session_privpath)
+        call_cmd(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
+                  "plaintexts_json"], cwd=session_privpath, check_ret=0,
+                  timeout=3600)
 
         # verify the proofs. sometimes verificatum raises an exception at the end
         # so we dismiss it if the verification is successful. TODO: fix that in
