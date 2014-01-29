@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
 import os
 import signal
 import time
@@ -68,8 +67,6 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
         o = p.read()
         if len(o) > 0:
             print("output = %s" % o)
-        else:
-            print(".", end="")
 
         if output_filter:
             output_filter(p, o, output)
