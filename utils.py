@@ -65,7 +65,10 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
         ret = p.wait(os.WNOHANG)
         # print any new output
         o = p.read()
-        print("output = %s" % o)
+        if len(o) > 0:
+            print("output = %s" % o)
+        else:
+            print(".")
 
         if output_filter:
             output_filter(p, o, output)
