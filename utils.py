@@ -68,7 +68,8 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
         if len(o) > 0:
             print("output = %s" % o)
         else:
-            print(".")
+            from __future__ import print_function
+            print(".", end="")
 
         if output_filter:
             output_filter(p, o, output)
