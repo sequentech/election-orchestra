@@ -324,12 +324,22 @@ def generate_public_key(task):
         protinfo_file.close()
 
     # generate raw public key
+    def output_filter(p, o, output):
+        '''
+        detect common errors and kill process in that case
+        '''
+        if "Unable to download signature!" in o or\
+                "ERROR: Invalid socket address!" in o:
+            p.kill(signal.SIGKILL)
+            raise TaskError(dict(reason='error executing verificatum'))
+
     call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
-             timeout=10*60, check_ret=0)
+             timeout=10*60, check_ret=0, output_filter=output_filter)
 
     # transform it into json format
-    subprocess.check_call(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
-                           "publicKey_json"], cwd=session_privpath)
+    call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
+              "publicKey_json"], cwd=session_privpath,
+              timeout=20, check_ret=0)
 
     # publish protInfo.xml and publicKey_json
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
