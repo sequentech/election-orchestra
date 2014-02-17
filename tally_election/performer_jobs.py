@@ -459,7 +459,9 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
         tfile.addfile(tinfo)
 
     if os.path.isdir(filepath):
-        for subitem in os.listdir(filepath):
+        l = os.listdir(filepath)
+        l.sort() # sort or it won't be deterministic!
+        for subitem in l:
             newpath = os.path.join(filepath, subitem)
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
