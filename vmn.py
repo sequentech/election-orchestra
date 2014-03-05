@@ -55,21 +55,17 @@ def v_reset(election_private_path):
     return subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml",
       "-f"], cwd=election_private_path)
 
-@pre_kill_verificatum
 def v_verify(protinfo_path, proofs_path):
     return subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
 
-@pre_kill_verificatum
 def v_convert_pkey_json(session_privpath):
   return call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
     "publicKey_json"], cwd=session_privpath, timeout=20, check_ret=0)
 
-@pre_kill_verificatum
 def v_convert_ctexts_json(session_privpath):
     return subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
             "ciphertexts_json", "ciphertexts_raw"], cwd=session_privpath)
 
-@pre_kill_verificatum
 def v_convert_plaintexts_json(session_privpath):
     return call_cmd(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
         "plaintexts_json"], cwd=session_privpath, check_ret=0, timeout=3600)
