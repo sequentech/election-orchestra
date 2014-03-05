@@ -1,5 +1,6 @@
 import subprocess
 from utils import *
+from frestq.app import app
 
 #
 # interface functions for verificatum commands
@@ -7,12 +8,12 @@ from utils import *
 
 def kill_verificatum():
     print("killing previous verificatum instances..")
-    # TODO
+    subprocess.call("ps aux | grep java | grep -i verificatum | awk '{print $2}' | xargs kill -9", shell=True)
 
 def pre_kill_verificatum(func):
     def go(*args, **kwargs):
         # TODO: add some config flag
-        if(True):
+        if(app.config.get('KILL_ALL_VERIFICATUM_BEFORE_START_NEW', False)):
             kill_verificatum()
 
         return func(*args, **kwargs)

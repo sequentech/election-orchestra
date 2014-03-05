@@ -33,6 +33,8 @@ AUTOACCEPT_REQUESTS = True
 
 MAX_NUM_QUESTIONS_PER_ELECTION = 40
 
+KILL_ALL_VERIFICATUM_BEFORE_START_NEW = False
+
 QUEUES_OPTIONS = {
     'verificatum_queue': {
         'max_threads': 1,
