@@ -8,7 +8,9 @@ from frestq.app import app
 
 def kill_verificatum():
     print("killing previous verificatum instances..")
-    subprocess.call("ps aux | grep java | grep -i verificatum | awk '{print $2}' | xargs kill -9", shell=True)
+    devnull = open('/dev/null', 'w')
+    subprocess.call("ps aux | grep java | grep -i verificatum | awk '{print $2}' | xargs kill -9",
+      shell=True, stdout=devnull, stderr=devnull)
 
 def pre_kill_verificatum(func):
     def go(*args, **kwargs):
