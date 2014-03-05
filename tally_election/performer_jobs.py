@@ -36,6 +36,7 @@ from frestq.action_handlers import TaskHandler
 
 from models import Election, Authority, Session
 from utils import *
+from vmn import *
 
 BUF_SIZE = 10*1024
 
@@ -122,8 +123,9 @@ def review_tally(task):
             os.unlink(cipherraw_path)
 
         # reset securely
-        subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml",
-            "-f"], cwd=session_privpath)
+        #subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml",
+        #    "-f"], cwd=session_privpath)
+        v_reset(session_privpath)
 
     # if there were previous tallies, remove the tally approved flag file
     approve_path = os.path.join(private_data_path, election_id, 'tally_approved')
@@ -185,8 +187,9 @@ def review_tally(task):
     # Convert each ciphertexts_json of each session into ciphertexts_raw
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
-        subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
-            "ciphertexts_json", "ciphertexts_raw"], cwd=session_privpath)
+        #subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
+        #    "ciphertexts_json", "ciphertexts_raw"], cwd=session_privpath)
+        v_convert_ctexts_json(session_privpath)
 
     autoaccept = app.config.get('AUTOACCEPT_REQUESTS', False)
     if not autoaccept:
@@ -283,9 +286,10 @@ class PerformTallyTask(TaskHandler):
                 raise TaskError(dict(reason="task not accepted"))
             os.unlink(tally_approved_path)
 
-        call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
-            "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
-            timeout=5*3600, check_ret=0)
+        #call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
+        #    "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
+        #    timeout=5*3600, check_ret=0)
+        v_mix(session_privpath)
 
     def handle_error(self, error):
         '''
@@ -302,8 +306,9 @@ class PerformTallyTask(TaskHandler):
             os.unlink(approve_path)
 
         # reset securely
-        subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
-            cwd=election_private_path)
+        #subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
+        #    cwd=election_private_path)
+        v_reset(election_private_path)
 
 
 @decorators.task(action="verify_and_publish_tally", queue="orchestra_performer")
@@ -369,15 +374,17 @@ def verify_and_publish_tally(task):
             os.unlink(plaintexts_json_path)
 
         # transform plaintexts into json format
-        call_cmd(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
-                  "plaintexts_json"], cwd=session_privpath, check_ret=0,
-                  timeout=3600)
+        #call_cmd(["vmnc", "-plain", "-outi", "json", "plaintexts_raw",
+        #          "plaintexts_json"], cwd=session_privpath, check_ret=0,
+        #          timeout=3600)
+        v_convert_plaintexts_json(session_privpath)
 
         # verify the proofs. sometimes verificatum raises an exception at the end
         # so we dismiss it if the verification is successful. TODO: fix that in
         # verificatum
         try:
-            output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
+            # output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
+            output = v_verify(protinfo_path, proofs_path)
         except subprocess.CalledProcessError, e:
             output = e.output
         if "Verification completed SUCCESSFULLY after" not in output:

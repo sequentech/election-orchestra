@@ -55,7 +55,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
     Utility to call a command.
     timeout is in seconds.
     '''
-    print("calling to " + " ".join(cmd))
+    print("call_cmd: calling " + " ".join(cmd))
     p = Process(cmd, cwd=cwd, stderr=subprocess.STDOUT)
     launch_time = time.clock()
     output = ""

@@ -31,6 +31,7 @@ from frestq.app import app, db
 
 from models import Election, Authority, Session
 from utils import *
+from vmn import *
 
 def check_election_data(data, check_extra):
     '''
@@ -285,9 +286,10 @@ def generate_private_info_verificatum(task):
         protinfo_path = os.path.join(session_privpath, 'localProtInfo.xml')
         stub_path = os.path.join(session_privpath, 'stub.xml')
 
-        l = ["vmni", "-party", "-arrays", "file", "-name", auth_name, "-http",
-            server_url, "-hint", hint_server_url]
-        subprocess.check_call(l, cwd=session_privpath)
+        #l = ["vmni", "-party", "-arrays", "file", "-name", auth_name, "-http",
+        #    server_url, "-hint", hint_server_url]
+        #subprocess.check_call(l, cwd=session_privpath)
+        v_gen_private_info(auth_name, server_url, hint_server_url, session_privpath)
 
         # 5. read local protinfo file to be sent back to the orchestra director
         protinfo_file = codecs.open(protinfo_path, 'r', encoding='utf-8')
@@ -333,13 +335,15 @@ def generate_public_key(task):
             p.kill(signal.SIGKILL)
             raise TaskError(dict(reason='error executing verificatum'))
 
-    call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
-             timeout=10*60, check_ret=0, output_filter=output_filter)
+    #call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
+    #         timeout=10*60, check_ret=0, output_filter=output_filter)
+    v_gen_public_key(session_privpath, output_filter)
 
     # transform it into json format
-    call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
-              "publicKey_json"], cwd=session_privpath,
-              timeout=20, check_ret=0)
+    #call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
+    #          "publicKey_json"], cwd=session_privpath,
+    #          timeout=20, check_ret=0)
+    v_convert_pkey_json(session_privpath)
 
     # publish protInfo.xml and publicKey_json
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')

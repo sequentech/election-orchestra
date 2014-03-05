@@ -33,6 +33,7 @@ from frestq.app import app, db
 
 from models import Election, Authority, Session
 from utils import mkdir_recursive
+from vmn import *
 
 @decorators.local_task
 @decorators.task(action="create_election", queue="orchestra_director")
@@ -55,10 +56,12 @@ class CreateElectionTask(TaskHandler):
             # create stub.xml
             session_privpath = os.path.join(election_private_path, session_id)
             mkdir_recursive(session_privpath)
-            l = ["vmni", "-prot", "-sid", session_id, "-name",
-                election.title, "-nopart", str(election.num_parties), "-thres",
-                str(election.threshold_parties)]
-            subprocess.check_call(l, cwd=session_privpath)
+            # l = ["vmni", "-prot", "-sid", session_id, "-name",
+            #    election.title, "-nopart", str(election.num_parties), "-thres",
+            #    str(election.threshold_parties)]
+            #subprocess.check_call(l, cwd=session_privpath)
+            v_gen_protocol_info(session_id, election.title, election.num_parties,
+                election.threshold_parties, session_privpath)
 
             # read stub file to be sent to all the authorities
             stub_path = os.path.join(session_privpath, 'stub.xml')
@@ -190,7 +193,8 @@ def merge_protinfo_task(task):
     task.add(seq_task)
     for question in questions_data:
         j = 0
-        l = ["vmni", "-merge"]
+        # l = ["vmni", "-merge"]
+        l = []
         session_id = session_ids[i]
         session_privpath = os.path.join(election_privpath, session_ids[i])
 
@@ -205,7 +209,8 @@ def merge_protinfo_task(task):
             j += 1
 
         # merge the files
-        subprocess.check_call(l, cwd=session_privpath)
+        # subprocess.check_call(l, cwd=session_privpath)
+        v_merge(l, session_privpath)
 
         # read protinfo
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
