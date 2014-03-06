@@ -40,6 +40,10 @@ from vmn import *
 
 BUF_SIZE = 10*1024
 
+# we just use always the same timestamp for the files for creating
+# deterministic tars
+MAGIC_TIMESTAMP = 1394060400
+
 def hash_file(file_path):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file
@@ -393,7 +397,7 @@ def verify_and_publish_tally(task):
     result = tally.do_tally(election_privpath, json.loads(election.questions_data))
     result_privpath = os.path.join(election_privpath, 'result_json')
     with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
-        res_f.write(json.dumps(result))
+        res_f.write(json.dumps(result, sort_keys=True, indent=4))
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
@@ -409,13 +413,13 @@ def verify_and_publish_tally(task):
         tar = tarfile.open(os.path.basename(tally_path), 'w|gz')
     finally:
         os.chdir(cwd)
-    timestamp = int(task.get_data()["created_date"].date().strftime("%s"))
+    timestamp = MAGIC_TIMESTAMP
 
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
     pubkeys_path = os.path.join(privdata_path, election_id, 'pubkeys_json')
 
     with open(pubkeys_path, mode='w') as pubkeys_f:
-        pubkeys_f.write(json.dumps(pubkeys))
+        pubkeys_f.write(json.dumps(pubkeys, sort_keys=True, indent=4))
 
     deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
     deterministic_tar_add(tar, ciphertexts_path, 'ciphertexts_json', timestamp)
