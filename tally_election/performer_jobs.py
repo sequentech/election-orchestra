@@ -205,18 +205,13 @@ def review_tally(task):
 
         # request user to decide
         label = "approve_election_tally"
-        info_text = """* URL: %(url)s
-* Title: %(title)s
-* Description: %(description)s
- * Voting period: %(start_date)s - %(end_date)s
-* Authorities: %(authorities)s""" % dict(
-            url = election.url,
-            title = election.title,
-            description = election.description,
-            start_date = str_date(election.voting_start_date),
-            end_date = str_date(election.voting_end_date),
-            authorities = dumps([auth.to_dict() for auth in election.authorities], indent=4)
-        )
+        info_text = {'URL': election.url,
+'Title': election.title,
+'Description': election.description,
+'Voting period': "%s - %s" % (str_date(election.voting_start_date), str_date(election.voting_end_date)),
+'Question data': loads(election.questions_data),
+'Authorities': [auth.to_dict() for auth in election.authorities]
+	}
         approve_task = ExternalTask(label=label,
             data=info_text)
         task.add(approve_task)
