@@ -448,6 +448,7 @@ def deterministic_tarinfo(tfile, filepath, arcname, timestamp, uid=1000, gid=100
     tarinfo = tfile.gettarinfo(filepath, arcname)
     tarinfo.uid = uid
     tarinfo.gid = gid
+    tarinfo.mode = 0o755 if tarinfo.isdir() else 0o644
     tarinfo.uname = ""
     tarinfo.gname = ""
     tarinfo.mtime = timestamp
