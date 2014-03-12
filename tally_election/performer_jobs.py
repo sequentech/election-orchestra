@@ -349,7 +349,8 @@ def verify_and_publish_tally(task):
 
     # check no tally exists yet
     if os.path.exists(tally_path) and not election.is_recurring:
-        raise TaskError(dict(reason="tally already exists"))
+        raise TaskError(dict(reason="tally already exists, "
+                             "election_id = %s" % election_id))
 
     pubkeys = []
     for session in election.sessions.all():
