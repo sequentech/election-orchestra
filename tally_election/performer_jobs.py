@@ -406,8 +406,12 @@ def verify_and_publish_tally(task):
     cwd = os.getcwd()
     try:
         os.chdir(os.path.dirname(tally_path))
+        import time
+        old_time = time.time
+        time.time = lambda: MAGIC_TIMESTAMP
         tar = tarfile.open(os.path.basename(tally_path), 'w|gz')
     finally:
+        time.time = old_time
         os.chdir(cwd)
     timestamp = MAGIC_TIMESTAMP
 
