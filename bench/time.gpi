@@ -1,0 +1,9 @@
+# set terminal dumb
+set terminal png size 1100,800 enhanced font "Helvetica,20"
+set output 'time.png'
+f(x) = a*x + b
+g(x) = c*x + d
+title_f(a,b) = sprintf('f(x) = %.2fx + %.2f', a, b)
+fit f(x) 'data' u 1:8 via a, b
+fit g(x) 'data' u 1:10 via c, d
+plot "data" using 1:8 title "Mix time", "data" using 1:10 title "Tally time", "data" using 1:13 title "Ver time", f(x) t title_f(a,b), g(x) t title_f(c,d)

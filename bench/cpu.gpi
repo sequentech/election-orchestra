@@ -1,0 +1,4 @@
+# set terminal dumb
+set terminal png size 1100,800 enhanced font "Helvetica,20"
+set output 'cpu.png'
+plot "data" using 1:7 title "Mix %cpu", "data" using 1:12 title "Ver %cpu"
