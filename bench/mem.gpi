@@ -1,9 +1,7 @@
 # set terminal dumb
 set terminal png size 1100,800 enhanced font "Helvetica,20"
 set output 'mem.png'
-f(x) = a*x + b
 g(x) = c*x + d
-title_f(a,b) = sprintf('f(x) = %.2fx + %.2f', a, b)
-fit f(x) 'data' u 1:9 via a, b
+title_f(a,b) = sprintf('f(x) = %.4fx + %.2f', a, b)
 fit g(x) 'data' u 1:14 via c, d
-plot "data" using 1:9 title "Mix mem", "data" using 1:14 title "Ver mem", f(x) t title_f(a,b), g(x) t title_f(c,d)
+plot "data" using 1:9 title "Mix mem", "data" using 1:14 title "Ver mem", g(x) t title_f(c,d)
