@@ -393,7 +393,7 @@ def verify_and_publish_tally(task):
     result = tally.do_tally(election_privpath, json.loads(election.questions_data))
     result_privpath = os.path.join(election_privpath, 'result_json')
     with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
-        res_f.write(json.dumps(result, sort_keys=True, indent=4))
+        res_f.write(json.dumps(result, sort_keys=True, indent=4, separators=(',', ': ')))
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
