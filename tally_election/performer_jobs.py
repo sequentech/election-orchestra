@@ -100,7 +100,7 @@ def review_tally(task):
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
-        {'name': u'extra', 'isinstance': list},
+          {'name': u'extra', 'isinstance': list},
     ]
 
     for req in requirements:
@@ -200,10 +200,10 @@ def review_tally(task):
     pubkeys_path = os.path.join(election_privpath, 'pubkeys_json')
     pubkeys = json.loads(open(pubkeys_path).read())
     num_questions = len(election.sessions.all())
+    invalid_votes = 0
     for qnum in range(num_questions):
         pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
         pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
-    invalid_votes = 0
 
     try:
         invotes_file = open(ciphertexts_path, 'r')
@@ -239,6 +239,12 @@ def review_tally(task):
                 i += 1
     finally:
         print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
+
+        # save invalid votes
+        invalid_votes_path = os.path.join(election_privpath, 'invalid_votes')
+        with open(invalid_votes_path, 'w') as f:
+          f.write("%d" % invalid_votes)
+
         if invotes_file is not None:
             invotes_file.close()
         for f in outvotes_files:
@@ -446,8 +452,15 @@ def verify_and_publish_tally(task):
         if "Verification completed SUCCESSFULLY after" not in output:
             raise TaskError(dict(reason="invalid tally proofs"))
 
-    result = tally.do_tally(election_privpath, json.loads(election.questions_data))
+    # get number of invalid votes that were detected before decryption
+    invalid_votes_path = os.path.join(election_privpath, 'invalid_votes')
+    invalid_votes = int(open(invalid_votes_path, 'r').read(), 10)
+
+    result = tally.do_tally(election_privpath, json.
+                            loads(election.questions_data),
+                            encrypted_invalid_votes=invalid_votes)
     result_privpath = os.path.join(election_privpath, 'result_json')
+
     with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
         res_f.write(json.dumps(result, sort_keys=True, indent=4, separators=(',', ': ')))
 
