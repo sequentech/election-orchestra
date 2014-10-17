@@ -56,6 +56,36 @@ def hash_file(file_path):
     f.close()
     return hash.hexdigest()
 
+def verify_pok_plaintext(pk, proof, ciphertext):
+    '''
+    verifies the proof of knowledge of the plaintext, given encrypted data and
+    the public key
+
+    "pk" must be a dictonary with keys "g", "p", and values must be integers.
+
+    More info:
+    http://courses.csail.mit.edu/6.897/spring04/L19.pdf - 2.1 Proving
+    Knowledge of Plaintext
+    '''
+    pk_p = pk['p']
+    pk_g = pk['g']
+    commitment = int(proof['commitment'])
+    response = int(proof['response'])
+    challenge =  int(proof['challenge'])
+    alpha = int(ciphertext['alpha'])
+
+    # verify the challenge is valid
+    hash = hashlib.sha256()
+    hash.update(("%d/%d" % (alpha, commitment)).encode('utf-8'))
+    challenge_calculated = int(hash.hexdigest(), 16)
+    assert challenge_calculated == challenge
+
+    first_part = pow(pk_g, response, pk_p)
+    second_part = (commitment * pow(alpha, challenge, pk_p)) % pk_p
+
+    # check g^response == commitment * (g^t) ^ challenge == commitment * (alpha) ^ challenge
+    assert first_part == second_part
+
 @decorators.task(action="review_tally", queue="orchestra_performer")
 def review_tally(task):
     '''
@@ -165,16 +195,41 @@ def review_tally(task):
     # NOTE: This is the inverse of what the demociphs.py script does
     invotes_file = None
     outvotes_files = []
+
+    # pubkeys needed to verify votes
+    pubkeys_path = os.path.join(election_privpath, 'pubkeys_json')
+    pubkeys = json.loads(open(pubkeys_path).read())
+    num_questions = len(election.sessions.all())
+    for qnum in range(num_questions):
+        pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
+        pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
+    invalid_votes = 0
+
     try:
         invotes_file = open(ciphertexts_path, 'r')
         for session in election.sessions.all():
             outvotes_path = os.path.join(election_privpath, session.id,
                 'ciphertexts_json')
             outvotes_files.append(open(outvotes_path, 'w'))
+        print("\n------ Reading and verifying POK of plaintext for the votes..\n")
+        lnum = 0
         for line in invotes_file:
+            lnum += 1
             line_data = json.loads(line)
-            i = 0
             assert len(line_data['choices']) == len(outvotes_files)
+
+            try:
+              for qnum in range(num_questions):
+                  verify_pok_plaintext(pubkeys[qnum], line_data['proofs'][qnum], line_data['choices'][qnum])
+            except Exception as e:
+              invalid_votes += 1
+              print("------ invalid vote, disregarding, vote in line %d : ..%s.." % (lnum, line[41:100]))
+              continue
+
+            if lnum % 1000 == 0:
+              print("------ Verified %d votes (%d invalid so far)" % (lnum, invalid_votes))
+
+            i = 0
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
                 # otherwise verificatum won't read it well
@@ -183,6 +238,7 @@ def review_tally(task):
                 outvotes_files[i].write("\n")
                 i += 1
     finally:
+        print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
         if invotes_file is not None:
             invotes_file.close()
         for f in outvotes_files:
