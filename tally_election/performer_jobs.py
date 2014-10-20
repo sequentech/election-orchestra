@@ -140,6 +140,7 @@ def review_tally(task):
     if not election.is_recurring and os.path.exists(tally_path):
         raise TaskError(dict(reason="election already tallied"))
 
+    pubkeys = []
     for session in election.sessions.all():
         session_privpath = os.path.join(election_privpath, session.id)
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
@@ -155,6 +156,10 @@ def review_tally(task):
             os.unlink(ciphertexts_path)
         if os.path.exists(cipherraw_path):
             os.unlink(cipherraw_path)
+
+        pubkey_json_path = os.path.join(session_privpath, 'publicKey_json')
+        with open(pubkey_json_path, 'r') as pubkey_file:
+            pubkeys.append(json.loads(pubkey_file.read()))
 
         # reset securely
         #subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml",
@@ -196,9 +201,12 @@ def review_tally(task):
     invotes_file = None
     outvotes_files = []
 
-    # pubkeys needed to verify votes
+    # pubkeys needed to verify votes. we also save it to a file
     pubkeys_path = os.path.join(election_privpath, 'pubkeys_json')
-    pubkeys = json.loads(open(pubkeys_path).read())
+    pubkeys_s = json.dumps(pubkeys, sort_keys=True, indent=4)
+    with open(pubkeys_path, mode='w') as pubkeys_f:
+        pubkeys_f.write(pubkeys_s)
+
     num_questions = len(election.sessions.all())
     invalid_votes = 0
     for qnum in range(num_questions):
