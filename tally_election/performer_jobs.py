@@ -203,7 +203,8 @@ def review_tally(task):
 
     # pubkeys needed to verify votes. we also save it to a file
     pubkeys_path = os.path.join(election_privpath, 'pubkeys_json')
-    pubkeys_s = json.dumps(pubkeys, sort_keys=True, indent=4)
+    pubkeys_s = json.dumps(pubkeys,
+        ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': '))
     with open(pubkeys_path, mode='w') as pubkeys_f:
         pubkeys_f.write(pubkeys_s)
 
@@ -242,7 +243,7 @@ def review_tally(task):
                 # NOTE: we use specific separators with no spaces, because
                 # otherwise verificatum won't read it well
                 outvotes_files[i].write(json.dumps(choice,
-                    separators=(",", ":")))
+                    ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
                 outvotes_files[i].write("\n")
                 i += 1
     finally:
@@ -469,7 +470,8 @@ def verify_and_publish_tally(task):
     result_privpath = os.path.join(election_privpath, 'result_json')
 
     with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
-        res_f.write(json.dumps(result, sort_keys=True, indent=4, separators=(',', ': ')))
+        res_f.write(json.dumps(result,
+            ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
@@ -495,7 +497,8 @@ def verify_and_publish_tally(task):
     pubkeys_path = os.path.join(privdata_path, election_id, 'pubkeys_json')
 
     with open(pubkeys_path, mode='w') as pubkeys_f:
-        pubkeys_f.write(json.dumps(pubkeys, sort_keys=True, indent=4))
+        pubkeys_f.write(json.dumps(pubkeys,
+            ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
 
     deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
     deterministic_tar_add(tar, ciphertexts_path, 'ciphertexts_json', timestamp)
