@@ -465,7 +465,7 @@ def verify_and_publish_tally(task):
     invalid_votes_path = os.path.join(election_privpath, 'invalid_votes')
     invalid_votes = int(open(invalid_votes_path, 'r').read(), 10)
 
-    result = tally.do_dirtally(election_privpath,
+    result = tally.do_tally(election_privpath, question=json.dumps(election.questions_data),
                             encrypted_invalid_votes=invalid_votes)
     result_privpath = os.path.join(election_privpath, 'result_json')
 
