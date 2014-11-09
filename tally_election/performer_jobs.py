@@ -232,7 +232,7 @@ def review_tally(task):
                 # NOTE: we use specific separators with no spaces, because
                 # otherwise verificatum won't read it well
                 outvotes_files[i].write(json.dumps(choice,
-                    ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
+                    ensure_ascii=False, sort_keys=True, separators=(',', ':')))
                 outvotes_files[i].write("\n")
                 i += 1
     finally:
