@@ -227,17 +227,6 @@ def review_tally(task):
             line_data = json.loads(line)
             assert len(line_data['choices']) == len(outvotes_files)
 
-            try:
-              for qnum in range(num_questions):
-                  verify_pok_plaintext(pubkeys[qnum], line_data['proofs'][qnum], line_data['choices'][qnum])
-            except Exception as e:
-              invalid_votes += 1
-              print("------ invalid vote, disregarding, vote in line %d : ..%s.." % (lnum, line[41:100]))
-              continue
-
-            if lnum % 1000 == 0:
-              print("------ Verified %d votes (%d invalid so far)" % (lnum, invalid_votes))
-
             i = 0
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
