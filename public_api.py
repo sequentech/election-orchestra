@@ -168,7 +168,7 @@ def post_election():
     task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
         action="create_election",
-        queue="orchestra_director",
+        queue="launch_task",
         data={
             'election_id': data['election_id']
         }
@@ -265,7 +265,7 @@ def post_tally():
     task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
         action="tally_election",
-        queue="orchestra_director",
+        queue="launch_task",
         data={
             'election_id': data['election_id'],
             'callback_url': data['callback_url'],

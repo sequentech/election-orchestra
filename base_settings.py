@@ -36,6 +36,9 @@ MAX_NUM_QUESTIONS_PER_ELECTION = 40
 KILL_ALL_VERIFICATUM_BEFORE_START_NEW = False
 
 QUEUES_OPTIONS = {
+    'launch_task': {
+        'max_threads': 1
+    },
     'verificatum_queue': {
         'max_threads': 1,
     }

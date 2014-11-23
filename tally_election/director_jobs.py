@@ -31,7 +31,7 @@ from models import Election, Authority, Session
 from utils import mkdir_recursive
 
 @decorators.local_task
-@decorators.task(action="tally_election", queue="orchestra_director")
+@decorators.task(action="tally_election", queue="launch_task")
 class TallyElectionTask(TaskHandler):
     def execute(self):
         data = self.task.get_data()['input_data']

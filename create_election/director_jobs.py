@@ -36,7 +36,7 @@ from utils import mkdir_recursive
 from vmn import *
 
 @decorators.local_task
-@decorators.task(action="create_election", queue="orchestra_director")
+@decorators.task(action="create_election", queue="launch_task")
 class CreateElectionTask(TaskHandler):
     def execute(self):
         task = self.task
