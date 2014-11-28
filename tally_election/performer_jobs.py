@@ -24,7 +24,6 @@ import subprocess
 import json
 import requests
 import shutil
-from agora_tally import tally
 from datetime import datetime
 
 from frestq.app import app, db
@@ -453,14 +452,6 @@ def verify_and_publish_tally(task):
     # get number of invalid votes that were detected before decryption
     invalid_votes_path = os.path.join(election_privpath, 'invalid_votes')
     invalid_votes = int(open(invalid_votes_path, 'r').read(), 10)
-
-    result = tally.do_tally(election_privpath, questions=json.loads(election.questions_data),
-                            encrypted_invalid_votes=invalid_votes)
-    result_privpath = os.path.join(election_privpath, 'result_json')
-
-    with codecs.open(result_privpath, encoding='utf-8', mode='w') as res_f:
-        res_f.write(json.dumps(result,
-            ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
 
     # once the proofs have been verified, create and publish a tarball
     # containing plaintexts, protInfo and proofs
