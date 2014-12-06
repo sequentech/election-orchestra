@@ -132,7 +132,7 @@ class TallyElectionTask(TaskHandler):
                 "message": "election tally failed for some reason"
             }
         }
-        r = session.request('post', callback_url, data=dumps(fail_data),
+        r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
                             verify=False)
         print r.text
 
@@ -166,6 +166,6 @@ def return_election(task):
         }
     }
     session = requests.sessions.Session()
-    r = session.request('post', callback_url, data=dumps(ret_data),
+    r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
                         verify=False)
     print r.text
