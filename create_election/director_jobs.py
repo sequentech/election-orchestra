@@ -291,6 +291,6 @@ def return_election(task):
     }
     print "callback_url, ", callback_url
     print dumps(ret_data)
-    r = session.request('post', callback_url, data=dumps(ret_data),
+    r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
                         verify=False)
     print r.text
