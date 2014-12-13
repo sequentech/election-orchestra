@@ -39,55 +39,52 @@ def check_election_data(data, check_extra):
     generate_private_info.
     '''
     requirements = [
-        {'name': u'election_id', 'isinstance': basestring},
+        {'name': u'id', 'isinstance': basestring},
         {'name': u'title', 'isinstance': basestring},
-        {'name': u'url', 'isinstance': basestring},
         {'name': u'description', 'isinstance': basestring},
-        {'name': u'is_recurring', 'isinstance': bool},
         {'name': u'authorities', 'isinstance': list},
     ]
 
     if check_extra:
         requirements += [
             {'name': 'callback_url', 'isinstance': basestring},
-            {'name': 'extra', 'isinstance': list},
-            {'name': u'questions_data', 'isinstance': list},
+            {'name': u'questions', 'isinstance': list},
         ]
-        questions_data = data.get('questions_data', None)
+        questions = data.get('questions', None)
     else:
         try:
-            questions_data = json.loads(data.get('questions_data', None))
+            questions = json.loads(data.get('questions', None))
         except:
-            raise TaskError(dict(reason='questions_data is not in json'))
+            raise TaskError(dict(reason='questions is not in json'))
 
     for req in requirements:
         if req['name'] not in data or not isinstance(data[req['name']],
             req['isinstance']):
             raise TaskError(dict(reason="invalid %s parameter" % req['name']))
 
-    if 'voting_start_date' not in data or (data['voting_start_date'] is not None
-            and not isinstance(data['voting_start_date'], datetime)):
-        raise TaskError(dict(reason="invalid voting_start_date parameter"))
+    if 'start_date' not in data or (data['start_date'] is not None
+            and not isinstance(data['start_date'], datetime)):
+        raise TaskError(dict(reason="invalid start_date parameter"))
 
-    if 'voting_end_date' not in data or (data['voting_end_date'] is not None
-            and not isinstance(data['voting_end_date'], datetime)):
-        raise TaskError(dict(reason="invalid voting_send_date parameter"))
+    if 'end_date' not in data or (data['end_date'] is not None
+            and not isinstance(data['end_date'], datetime)):
+        raise TaskError(dict(reason="invalid end_date parameter"))
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
-        raise TaskError(dict(reason="invalid characters in election_id"))
+    if not re.match("^[a-zA-Z0-9_-]+$", data['id']):
+        raise TaskError(dict(reason="invalid characters in id"))
 
     if len(data['authorities']) == 0:
         raise TaskError(dict(reason='no authorities'))
 
-    if not isinstance(questions_data, list) or len(questions_data) < 1 or\
-            len(questions_data) > app.config.get('MAX_NUM_QUESTIONS_PER_ELECTION', 10):
+    if not isinstance(questions, list) or len(questions) < 1 or\
+            len(questions) > app.config.get('MAX_NUM_QUESTIONS_PER_ELECTION', 10):
         raise TaskError(dict(reason='Unsupported number of questions in the election'))
 
 
     if check_extra and\
-            Election.query.filter_by(id=data['election_id']).count() > 0:
+            Election.query.filter_by(id=data['id']).count() > 0:
         raise TaskError(dict(reason='an election with id %s already '
-            'exists' % data['election_id']))
+            'exists' % data['id']))
 
     auth_reqs = [
         {'name': 'name', 'isinstance': basestring},
@@ -116,7 +113,7 @@ def generate_private_info(task):
     Generates the local private info for a new election
     '''
     input_data = task.get_data()['input_data']
-    election_id = input_data['election_id']
+    election_id = input_data['id']
 
     # 1. check this is a new election and check input data
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
@@ -159,16 +156,14 @@ def generate_private_info(task):
     # create election models, dirs and stubs if we are not the director
     if certs_differ(task.get_data()['sender_ssl_cert'], app.config.get('SSL_CERT_STRING', '')):
         if os.path.exists(election_privpath):
-            raise TaskError(dict(reason="Already existing election id %s" % input_data['election_id']))
+            raise TaskError(dict(reason="Already existing election id %s" % input_data['id']))
         election = Election(
-            id = input_data['election_id'],
+            id = input_data['id'],
             title = input_data['title'],
-            url = input_data['url'],
             description = input_data['description'],
-            questions_data = input_data['questions_data'],
-            voting_start_date = input_data['voting_start_date'],
-            voting_end_date = input_data['voting_end_date'],
-            is_recurring = input_data['is_recurring'],
+            questions = input_data['questions'],
+            start_date = input_data['start_date'],
+            end_date = input_data['end_date'],
             num_parties = input_data['num_parties'],
             threshold_parties = input_data['threshold_parties'],
         )
@@ -179,7 +174,7 @@ def generate_private_info(task):
                 name = auth_data['name'],
                 ssl_cert = auth_data['ssl_cert'],
                 orchestra_url = auth_data['orchestra_url'],
-                election_id = input_data['election_id']
+                election_id = input_data['id']
             )
             db.session.add(authority)
 
@@ -220,11 +215,11 @@ def generate_private_info(task):
                 return ""
 
         label = "approve_election"
-        info_text = {'URL': election.url,
+        info_text = {
 'Title': election.title,
 'Description': election.description,
-'Voting period': "%s - %s" % (str_date(election.voting_start_date), str_date(election.voting_end_date)),
-'Question data': loads(election.questions_data),
+'Voting period': "%s - %s" % (str_date(election.start_date), str_date(election.end_date)),
+'Question data': loads(election.questions),
 'Authorities': [auth.to_dict() for auth in election.authorities]
 	} 
         approve_task = ExternalTask(label=label,
@@ -255,7 +250,7 @@ def generate_private_info_verificatum(task):
         raise TaskError(dict(reason="task not accepted"))
 
     input_data = task.get_parent().get_data()['input_data']
-    election_id = input_data['election_id']
+    election_id = input_data['id']
     sessions = input_data['sessions']
     election = db.session.query(Election)\
         .filter(Election.id == election_id).first()

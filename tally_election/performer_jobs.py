@@ -36,24 +36,11 @@ from frestq.action_handlers import TaskHandler
 from models import Election, Authority, Session
 from utils import *
 from vmn import *
-
-BUF_SIZE = 10*1024
+from sha256 import hash_file
 
 # we just use always the same timestamp for the files for creating
 # deterministic tars
 MAGIC_TIMESTAMP = 1394060400
-
-def hash_file(file_path):
-    '''
-    Returns the hexdigest of the hash of the contents of a file, given the file
-    path.
-    '''
-    hash = hashlib.sha512()
-    f = open(file_path, 'r')
-    for chunk in f.read(BUF_SIZE):
-        hash.update(chunk)
-    f.close()
-    return hash.hexdigest()
 
 def verify_pok_plaintext(pk, proof, ciphertext):
     '''
@@ -99,7 +86,6 @@ def review_tally(task):
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
-          {'name': u'extra', 'isinstance': list},
     ]
 
     for req in requirements:
@@ -112,8 +98,8 @@ def review_tally(task):
     if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
         raise TaskError(dict(reason="invalid characters in election_id"))
 
-    if not data['votes_hash'].startswith("sha512://"):
-        raise TaskError(dict(reason="invalid votes_hash, must be sha512"))
+    if not data['votes_hash'].startswith("ni:///sha-256;"):
+        raise TaskError(dict(reason="invalid votes_hash, must be sha256"))
 
     # check election has been created successfully
     election_id = data['election_id']
@@ -136,7 +122,7 @@ def review_tally(task):
 
     tally_path = os.path.join(election_privpath, 'tally.tar.gz')
 
-    if not election.is_recurring and os.path.exists(tally_path):
+    if os.path.exists(tally_path):
         raise TaskError(dict(reason="election already tallied"))
 
     pubkeys = []
@@ -184,8 +170,8 @@ def review_tally(task):
     ciphertexts_file.close()
 
     # check votes hash
-    input_hash = data['votes_hash'].replace('sha512://', '')
-    if input_hash != hash_file(ciphertexts_path):
+    input_hash = data['votes_hash'].replace('ni:///sha-256;', '')
+    if not constant_time_compare(input_hash, hash_file(ciphertexts_path)):
         raise TaskError(dict(reason="invalid votes_hash"))
 
     # transform input votes into something readable by verificatum. Basically
@@ -264,13 +250,13 @@ def review_tally(task):
 
         # request user to decide
         label = "approve_election_tally"
-        info_text = {'URL': election.url,
-'Title': election.title,
-'Description': election.description,
-'Voting period': "%s - %s" % (str_date(election.voting_start_date), str_date(election.voting_end_date)),
-'Question data': loads(election.questions_data),
-'Authorities': [auth.to_dict() for auth in election.authorities]
-	}
+        info_text = {
+          'Title': election.title,
+          'Description': election.description,
+          'Voting period': "%s - %s" % (str_date(election.start_date), str_date(election.end_date)),
+          'Question data': loads(election.questions),
+          'Authorities': [auth.to_dict() for auth in election.authorities]
+        }
         approve_task = ExternalTask(label=label,
             data=info_text)
         task.add(approve_task)
@@ -400,14 +386,14 @@ def verify_and_publish_tally(task):
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     election_pubpath = os.path.join(pubdata_path, election_id)
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
-    tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha512')
+    tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha256')
 
     # check election_pubpath already exists - it should contain pubkey etc
     if not os.path.exists(election_pubpath):
         raise TaskError(dict(reason="election public path doesn't exist"))
 
     # check no tally exists yet
-    if os.path.exists(tally_path) and not election.is_recurring:
+    if os.path.exists(tally_path):
         raise TaskError(dict(reason="tally already exists, "
                              "election_id = %s" % election_id))
 
@@ -475,12 +461,17 @@ def verify_and_publish_tally(task):
 
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
     pubkeys_path = os.path.join(privdata_path, election_id, 'pubkeys_json')
+    questions_path = os.path.join(privdata_path, election_id, 'questions_json')
 
     with open(pubkeys_path, mode='w') as pubkeys_f:
         pubkeys_f.write(json.dumps(pubkeys,
             ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
 
-    deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
+    with codecs.open(questions_path, encoding='utf-8', mode='w') as res_f:
+        res_f.write(json.dumps(json.loads(election.questions),
+            ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
+
+    deterministic_tar_add(tar, questions_path, 'questions_json', timestamp)
     deterministic_tar_add(tar, ciphertexts_path, 'ciphertexts_json', timestamp)
     deterministic_tar_add(tar, pubkeys_path, 'pubkeys_json', timestamp)
 
@@ -499,7 +490,7 @@ def verify_and_publish_tally(task):
     tar.close()
 
 
-    # and publish also the sha512 of the tarball
+    # and publish also the sha256 of the tarball
     tally_hash_file = open(tally_hash_path, 'w')
     tally_hash_file.write(hash_file(tally_path))
     tally_hash_file.close()

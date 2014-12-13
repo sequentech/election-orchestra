@@ -50,7 +50,7 @@ def hash_file(file_path):
     Returns the hexdigest of the hash of the contents of a file, given the file
     path.
     '''
-    hash = hashlib.sha512()
+    hash = hashlib.sha256()
     f = open(file_path, 'r')
     for chunk in f.read(BUF_SIZE):
         hash.update(chunk)
@@ -105,14 +105,14 @@ def create(election_id):
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     election_pubpath = os.path.join(pubdata_path, election_id)
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
-    tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha512')
+    tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha256')
 
     # check election_pubpath already exists - it should contain pubkey etc
     if not os.path.exists(election_pubpath):
         raise TaskError(dict(reason="election public path doesn't exist"))
 
     # check no tally exists yet
-    if os.path.exists(tally_path) and not election.is_recurring:
+    if os.path.exists(tally_path):
         raise TaskError(dict(reason="tally already exists, "
                              "election_id = %s" % election_id))
 
@@ -176,7 +176,6 @@ def create(election_id):
         pubkeys_f.write(json.dumps(pubkeys,
             ensure_ascii=False, sort_keys=True, indent=4, separators=(',', ': ')))
 
-    deterministic_tar_add(tar, result_privpath, 'result_json', timestamp)
     deterministic_tar_add(tar, ciphertexts_path, 'ciphertexts_json', timestamp)
     deterministic_tar_add(tar, pubkeys_path, 'pubkeys_json', timestamp)
 
@@ -194,7 +193,7 @@ def create(election_id):
             os.path.join(session.id, "protInfo.xml"), timestamp)
     tar.close()
 
-    # and publish also the sha512 of the tarball
+    # and publish also the sha256 of the tarball
     tally_hash_file = open(tally_hash_path, 'w')
     tally_hash_file.write(hash_file(tally_path))
     tally_hash_file.close()

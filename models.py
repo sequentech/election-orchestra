@@ -31,7 +31,6 @@ class Election(db.Model):
     '''
     id = db.Column(db.Unicode(255), primary_key=True)
 
-    is_recurring = db.Column(db.Boolean)
 
     num_parties = db.Column(db.Integer)
 
@@ -43,16 +42,15 @@ class Election(db.Model):
 
     title = db.Column(db.Unicode(255))
 
-    url = db.Column(db.Unicode(1024))
 
     description = db.Column(db.UnicodeText)
 
     # converted into and from JSON
-    questions_data = db.Column(db.UnicodeText)
+    questions = db.Column(db.UnicodeText)
 
-    voting_start_date = db.Column(db.DateTime)
+    start_date = db.Column(db.DateTime)
 
-    voting_end_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
 
     status = db.Column(db.Unicode(128))
 
@@ -72,7 +70,6 @@ class Election(db.Model):
         ret = {
             'title': self.title,
             'id': self.id,
-            'is_recurring': self.is_recurring,
             'num_parties': self.num_parties,
             'threshold_parties': self.threshold_parties,
             'created_at': self.created_at,

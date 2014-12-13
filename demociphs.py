@@ -21,7 +21,7 @@ import os
 import json
 import subprocess
 
-import sha512
+import sha256
 
 NUM_DEMO_CIPHS = 100
 VOTES_FILENAME = 'votes'
@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     votes_url = "%s/public_data/%s/%s" % (BASE_URL, os.path.basename(path),
         VOTES_FILENAME)
-    sha512_hash = sha512.hash_file(votes_path)
+    sha256_hash = sha256.hash_file(votes_path)
 
     # print results
     print json.dumps({
@@ -94,6 +94,6 @@ if __name__ == "__main__":
         "callback_url": "%s/public_api/receive_tally" % BASE_URL,
         "extra": [],
         "votes_url": votes_url,
-        "votes_hash": "sha512://%s" % sha512_hash
+        "votes_hash": "ni:///sha-256;%s" % sha256_hash
     }, indent=4)
     print "\n"

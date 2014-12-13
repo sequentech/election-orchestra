@@ -19,6 +19,8 @@
 
 import sys
 import hashlib
+from functools import partial
+from base64 import urlsafe_b64encode
 
 BUF_SIZE = 10*1024
 
@@ -26,17 +28,20 @@ def hash_file(file_path):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file
     path.
+
+    Same as executing:
+    openssl sha256 -binary <file_path> | openssl base64
     '''
-    hash = hashlib.sha512()
+    hash = hashlib.sha256()
     f = open(file_path, 'r')
-    for chunk in f.read(BUF_SIZE):
+    for chunk in iter(partial(f.read, BUF_SIZE), b''):
         hash.update(chunk)
     f.close()
-    return hash.hexdigest()
+    return urlsafe_b64encode(hash.digest())
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "usage: %s <file-path> to obtain the sha512sum" % sys.argv[0]
+        print("usage: %s <file-path> to obtain the sha256sum" % sys.argv[0])
         exit(1)
 
-    print "sha512 hash of ", sys.argv[1], "= ", hash_file(sys.argv[1])
+    print("sha256 hash of " + sys.argv[1] + " = " + hash_file(sys.argv[1]))

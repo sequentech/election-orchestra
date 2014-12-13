@@ -49,9 +49,9 @@ class CreateElectionTask(TaskHandler):
         private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
         election_private_path = os.path.join(private_data_path, election_id)
         sessions = []
-        questions_data = json.loads(election.questions_data)
+        questions = json.loads(election.questions)
         i = 0
-        for question in questions_data:
+        for question in questions:
             session_id = "%d-%s" % (i, str(uuid.uuid4()))
             # create stub.xml
             session_privpath = os.path.join(election_private_path, session_id)
@@ -96,15 +96,13 @@ class CreateElectionTask(TaskHandler):
                 action="generate_private_info",
                 queue="orchestra_performer",
                 data=dict(
-                    election_id=election_id,
+                    id=election_id,
                     title = election.title,
-                    url = election.url,
                     description = election.description,
                     sessions=sessions,
-                    questions_data = election.questions_data,
-                    voting_start_date = election.voting_start_date,
-                    voting_end_date = election.voting_end_date,
-                    is_recurring = election.is_recurring,
+                    questions = election.questions,
+                    start_date = election.start_date,
+                    end_date = election.end_date,
                     num_parties = election.num_parties,
                     threshold_parties = election.threshold_parties,
                     authorities=[a.to_dict() for a in election.authorities]
@@ -180,7 +178,7 @@ def merge_protinfo_task(task):
     priv_info_task = task.get_prev()
     election = db.session.query(Election)\
         .filter(Election.id == election_id).first()
-    questions_data = json.loads(election.questions_data)
+    questions = json.loads(election.questions)
 
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
     election_privpath = os.path.join(private_data_path, election_id)
@@ -191,7 +189,7 @@ def merge_protinfo_task(task):
     # the pubkey for each session
     seq_task = SequentialTask()
     task.add(seq_task)
-    for question in questions_data:
+    for question in questions:
         j = 0
         # l = ["vmni", "-merge"]
         l = []

@@ -56,7 +56,6 @@ class TallyElectionTask(TaskHandler):
                     'callback_url': data['callback_url'],
                     'votes_url': data['votes_url'],
                     'votes_hash': data['votes_hash'],
-                    'extra': data['extra']
                 },
                 receiver_ssl_cert=authority.ssl_cert
             )
@@ -148,7 +147,7 @@ def return_election(task):
     tally_url = pub_data_url + '/' + election_id + '/tally.tar.gz'
 
     pub_data_path = app.config.get('PUBLIC_DATA_PATH', '')
-    tally_hash_path = os.path.join(pub_data_path, election_id, 'tally.tar.gz.sha512')
+    tally_hash_path = os.path.join(pub_data_path, election_id, 'tally.tar.gz.sha256')
 
     f = open(tally_hash_path, 'r')
     tally_hash = f.read()
@@ -162,7 +161,7 @@ def return_election(task):
         },
         "data": {
             "tally_url": tally_url,
-            "tally_hash": "sha512://" + tally_hash
+            "tally_hash": "ni:///sha-256;" + tally_hash
         }
     }
     session = requests.sessions.Session()

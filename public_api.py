@@ -49,43 +49,71 @@ def post_election():
     Example request:
     POST /election
     {
-        "election_id": "d9e5ee09-03fa-4890-aa83-2fc558e645b5",
-        "is_recurring": false,
-        "callback_url": "http://example.com/callback_create_election",
-        "extra": [],
-        "title": "New Directive Board",
-        "url": "https://example.com/election/url",
-        "description": "election description",
-        "questions_data": [{
-            "question": "Who Should be President?",
-            "tally_type": "ONE_CHOICE",
-            "answers": ["Alice", "Bob"],
-            "max": 1, "min": 0
-        }],
-        "voting_start_date": "2012-12-06T18:17:14.457000",
-        "voting_end_date": "2012-12-06T18:17:14.457000",
-        "authorities": [
-            {
-                "name": "Asociación Sugus GNU/Linux",
-                "orchestra_url": "https://sugus.eii.us.es/orchestra",
-                "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
-            },
-            {
-                "name": "Agora Ciudadana",
-                "orchestra_url": "https://agoravoting.com:6874/orchestra",
-                "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
-            },
-            {
-                "name": "Wadobo Labs",
-                "orchestra_url": "https://wadobo.com:6874/orchestra",
-                "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
-            }
-        ]
+      "id": 1110,
+      "title": "Votación de candidatos",
+      "description": "Selecciona los documentos polí­tico, ético y organizativo con los que Podemos",
+      "director": "wadobo-auth1",
+      "authorities": "openkratio-authority",
+      "layout": "pcandidates-election",
+      "presentation": {
+        "share_text": "lo que sea",
+        "theme": "foo",
+        "urls": [
+          {
+            "title": "",
+            "url": ""
+          }
+        ],
+        "theme_css": "whatever"
+      },
+      "end_date": "2013-12-09T18:17:14.457000",
+      "start_date": "2013-12-06T18:17:14.457000",
+      "questions": [
+          {
+              "description": "",
+              "layout": "pcandidates-election",
+              "max": 1,
+              "min": 0,
+              "num_winners": 1,
+              "title": "Secretarí­a General",
+              "randomize_answer_order": true,
+              "tally_type": "plurality-at-large",
+              "answer_total_votes_percentage": "over-total-valid-votes",
+              "answers": [
+                {
+                  "id": 0,
+                  "category": "Equipo de Enfermeras",
+                  "details": "",
+                  "sort_order": 1,
+                  "urls": [
+                    {
+                      "title": "",
+                      "url": ""
+                    }
+                  ],
+                  "text": "Fulanita de tal",
+                }
+              ]
+          }
+      ],
+      "authorities": [
+        {
+          "name": "Asociación Sugus GNU/Linux",
+          "orchestra_url": "https://sugus.eii.us.es/orchestra",
+          "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
+        },
+        {
+          "name": "Agora Ciudadana",
+          "orchestra_url": "https://agoravoting.com:6874/orchestra",
+          "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
+        },
+        {
+          "name": "Wadobo Labs",
+          "orchestra_url": "https://wadobo.com:6874/orchestra",
+          "ssl_cert": "-----BEGIN CERTIFICATE-----\nMIIFATCCA+mgAwIBAgIQAOli4NZQEWpKZeYX25jjwDANBgkqhkiG9w0BAQUFADBz\n8YOltJ6QfO7jNHU9jh/AxeiRf6MibZn6fvBHvFCrVBvDD43M0gdhMkVEDVNkPaak\nC7AHA/waXZ2EwW57Chr2hlZWAkwkFvsWxNt9BgJAJJt4CIVhN/iau/SaXD0l0t1N\nT0ye54QPYl38Eumvc439Yd1CeVS/HYbP0ISIfpNkkFA5TiQdoA==\n-----END CERTIFICATE-----"
+        }
+      ]
     }
-
-    The parameter "extra" allows to modify the protocol settings for the
-    stub.xml that is generated with verificatum's vmni command. Please
-    refer to verificatum documentation for more details.
 
 
     On success, response is empty with status 202 Accepted and returns something
@@ -140,14 +168,12 @@ def post_election():
         return error(400, e.data['reason'])
 
     e = Election(
-        id = data['election_id'],
+        id = data['id'],
         title = data['title'],
-        url = data['url'],
         description = data['description'],
-        questions_data = dumps(data['questions_data']),
-        voting_start_date = data['voting_start_date'],
-        voting_end_date = data['voting_end_date'],
-        is_recurring = data['is_recurring'],
+        questions = dumps(data['questions']),
+        start_date = data['start_date'],
+        end_date = data['end_date'],
         callback_url = data['callback_url'],
         num_parties = len(data['authorities']),
         threshold_parties = len(data['authorities']),
@@ -160,7 +186,7 @@ def post_election():
             name = auth_data['name'],
             ssl_cert = auth_data['ssl_cert'],
             orchestra_url = auth_data['orchestra_url'],
-            election_id = data['election_id']
+            election_id = data['id']
         )
         db.session.add(authority)
     db.session.commit()
@@ -170,7 +196,7 @@ def post_election():
         action="create_election",
         queue="launch_task",
         data={
-            'election_id': data['election_id']
+            'election_id': data['id']
         }
     )
     task.create_and_send()
@@ -191,9 +217,8 @@ def post_tally():
     {
         "election_id": "vota4",
         "callback_url": "https://127.0.0.1:5000/public_api/receive_tally",
-        "extra": [],
         "votes_url": "https://127.0.0.1:5000/public_data/vota4/encrypted_ciphertexts",
-        "votes_hash": "sha512://e96a0c0684fc5d515c89522d1bf26a142d9a72c3f38f4f1e578db9b66f3b6ed3e7590d801e1ce8cc17456a3a7226cec5814f4131cbc455ffe0315e5f387c718f"
+        "votes_hash": "ni:///sha-256;f4OxZX_x_FO5LcGBSKHWXfwtSx-j1ncoSt3SABJtkGk"
     }
 
     On success, response is empty with status 202 Accepted and returns something
@@ -213,7 +238,8 @@ def post_tally():
             "action": "POST /tally"
         },
         "data": {
-            "votes_url": "https://127.0.0.1:5000/public_data/vota4/tally.tar.bz2", "sha512://cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
+            "votes_url": "https://127.0.0.1:5000/public_data/vota4/tally.tar.bz2",
+            "votes_hash": "ni:///sha-256;f4OxZX_x_FO5LcGBSKHWXfwtSx-j1ncoSt3SABJtkGk"
         }
     }
 
@@ -241,7 +267,6 @@ def post_tally():
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
-        {'name': u'extra', 'isinstance': list},
     ]
 
     for req in requirements:
@@ -253,8 +278,8 @@ def post_tally():
     if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
         return error(400, "invalid characters in election id")
 
-    if not data['votes_hash'].startswith("sha512://"):
-        return error(400, "invalid votes_hash, must be sha512")
+    if not data['votes_hash'].startswith("ni:///sha-256;"):
+        return error(400, "invalid votes_hash, must be sha256")
 
     election_id = data['election_id']
     election = db.session.query(Election)\
@@ -271,7 +296,6 @@ def post_tally():
             'callback_url': data['callback_url'],
             'votes_url': data['votes_url'],
             'votes_hash': data['votes_hash'],
-            'extra': data['extra']
         }
     )
     task.create_and_send()
