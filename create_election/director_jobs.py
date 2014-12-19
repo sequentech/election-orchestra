@@ -47,7 +47,7 @@ class CreateElectionTask(TaskHandler):
 
         # 1. generate a session per question
         private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-        election_private_path = os.path.join(private_data_path, election_id)
+        election_private_path = os.path.join(private_data_path, str(election_id))
         sessions = []
         questions = json.loads(election.questions)
         i = 0
@@ -60,7 +60,7 @@ class CreateElectionTask(TaskHandler):
             #    election.title, "-nopart", str(election.num_parties), "-thres",
             #    str(election.threshold_parties)]
             #subprocess.check_call(l, cwd=session_privpath)
-            v_gen_protocol_info(session_id, election.title, election.num_parties,
+            v_gen_protocol_info(session_id, str(election.id), election.num_parties,
                 election.threshold_parties, session_privpath)
 
             # read stub file to be sent to all the authorities
@@ -88,7 +88,7 @@ class CreateElectionTask(TaskHandler):
         # 2. generate private info and protocol info files on each authority
         # (and for each question/session). Also, each authority might require
         # the approval of the task by its operator.
-        priv_info_task = ParallelTask()
+        priv_info_task = SequestialTask()
         for authority in election.authorities:
             subtask = SimpleTask(
                 receiver_url=authority.orchestra_url,
@@ -181,7 +181,7 @@ def merge_protinfo_task(task):
     questions = json.loads(election.questions)
 
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, election_id)
+    election_privpath = os.path.join(private_data_path, str(election_id))
 
     i = 0
 
@@ -254,7 +254,7 @@ def return_election(task):
     for session_id in session_ids:
         # read into a string the pubkey
         privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-        pubkey_path = os.path.join(privdata_path, election_id, session_id, 'publicKey_json')
+        pubkey_path = os.path.join(privdata_path, str(election_id), session_id, 'publicKey_json')
         pubkey_file = open(pubkey_path, 'r')
         pubkey = pubkey_file.read()
         pubkey_file.close()
@@ -265,14 +265,14 @@ def return_election(task):
 
         # publish the pubkey
         pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
-        pub_session_path = os.path.join(pubdata_path, election_id, session_id)
+        pub_session_path = os.path.join(pubdata_path, str(election_id), session_id)
         pubkey_path2 = os.path.join(pub_session_path, 'publicKey_json')
         if not os.path.exists(pub_session_path):
             mkdir_recursive(pub_session_path)
         shutil.copyfile(pubkey_path, pubkey_path2)
 
         # publish protInfo.xml too
-        session_privpath = os.path.join(privdata_path, election_id, session_id)
+        session_privpath = os.path.join(privdata_path, str(election_id), session_id)
         protinfo_privpath = os.path.join(session_privpath, 'protInfo.xml')
         protinfo_pubpath = os.path.join(pub_session_path, 'protInfo.xml')
         shutil.copyfile(protinfo_privpath, protinfo_pubpath)

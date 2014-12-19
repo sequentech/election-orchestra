@@ -39,7 +39,7 @@ def check_election_data(data, check_extra):
     generate_private_info.
     '''
     requirements = [
-        {'name': u'id', 'isinstance': basestring},
+        {'name': u'id', 'isinstance': int},
         {'name': u'title', 'isinstance': basestring},
         {'name': u'description', 'isinstance': basestring},
         {'name': u'authorities', 'isinstance': list},
@@ -70,8 +70,8 @@ def check_election_data(data, check_extra):
             and not isinstance(data['end_date'], datetime)):
         raise TaskError(dict(reason="invalid end_date parameter"))
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['id']):
-        raise TaskError(dict(reason="invalid characters in id"))
+    if data['id'] < 1:
+        raise TaskError(dict(reason="id must be positive"))
 
     if len(data['authorities']) == 0:
         raise TaskError(dict(reason='no authorities'))
@@ -117,7 +117,7 @@ def generate_private_info(task):
 
     # 1. check this is a new election and check input data
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, election_id)
+    election_privpath = os.path.join(private_data_path, str(election_id))
 
     # check generic input data, similar to the data for public_api
     check_election_data(input_data, False)
@@ -156,7 +156,7 @@ def generate_private_info(task):
     # create election models, dirs and stubs if we are not the director
     if certs_differ(task.get_data()['sender_ssl_cert'], app.config.get('SSL_CERT_STRING', '')):
         if os.path.exists(election_privpath):
-            raise TaskError(dict(reason="Already existing election id %s" % input_data['id']))
+            raise TaskError(dict(reason="Already existing election id %d" % input_data['id']))
         election = Election(
             id = input_data['id'],
             title = input_data['title'],
@@ -261,7 +261,7 @@ def generate_private_info_verificatum(task):
             auth_name = auth_data['name']
 
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, election_id)
+    election_privpath = os.path.join(private_data_path, str(election_id))
 
     # this are an "indicative" url, because port can vary later on
     server_url = get_server_url()
@@ -297,7 +297,7 @@ def generate_public_key(task):
     election_id = input_data['election_id']
 
     privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-    session_privpath = os.path.join(privdata_path, election_id, session_id)
+    session_privpath = os.path.join(privdata_path, str(election_id), session_id)
 
     # some sanity checks, as this is not a local task
     if not os.path.exists(session_privpath):
@@ -327,15 +327,24 @@ def generate_public_key(task):
     #         timeout=10*60, check_ret=0, output_filter=output_filter)
     v_gen_public_key(session_privpath, output_filter)
 
+
+    def output_filter2(p, o, output):
+        '''
+        detect common errors and kill process in that case
+        '''
+        if "Failed to parse info files!" in o:
+            p.kill(signal.SIGKILL)
+            raise TaskError(dict(reason='error executing verificatum'))
+
     # transform it into json format
     #call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
     #          "publicKey_json"], cwd=session_privpath,
     #          timeout=20, check_ret=0)
-    v_convert_pkey_json(session_privpath)
+    v_convert_pkey_json(session_privpath, output_filter)
 
     # publish protInfo.xml and publicKey_json
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
-    session_pubpath = os.path.join(pubdata_path, election_id, session_id)
+    session_pubpath = os.path.join(pubdata_path, str(election_id), session_id)
     if not os.path.exists(session_pubpath):
         mkdir_recursive(session_pubpath)
 

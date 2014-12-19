@@ -82,7 +82,7 @@ def review_tally(task):
 
     # check input data
     requirements = [
-        {'name': u'election_id', 'isinstance': basestring},
+        {'name': u'election_id', 'isinstance': int},
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},
@@ -95,8 +95,8 @@ def review_tally(task):
             raise TaskError(dict(reason="invalid %s parameter" % req['name']))
 
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
-        raise TaskError(dict(reason="invalid characters in election_id"))
+    if data['election_id'] <= 0:
+        raise TaskError(dict(reason="election_id must be a positive int"))
 
     if not data['votes_hash'].startswith("ni:///sha-256;"):
         raise TaskError(dict(reason="invalid votes_hash, must be sha256"))
@@ -118,7 +118,7 @@ def review_tally(task):
         raise TaskError(dict(reason="review tally sent by an invalid authority"))
 
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, election_id)
+    election_privpath = os.path.join(private_data_path, str(election_id))
 
     tally_path = os.path.join(election_privpath, 'tally.tar.gz')
 
@@ -152,7 +152,7 @@ def review_tally(task):
         v_reset(session_privpath)
 
     # if there were previous tallies, remove the tally approved flag file
-    approve_path = os.path.join(private_data_path, election_id, 'tally_approved')
+    approve_path = os.path.join(private_data_path, str(election_id), 'tally_approved')
     if os.path.exists(approve_path):
         os.unlink(approve_path)
 
@@ -282,7 +282,7 @@ def check_tally_approval(task):
     input_data = task.get_data()['input_data']
     election_id = input_data['election_id']
     privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-    approve_path = os.path.join(privdata_path, election_id, 'tally_approved')
+    approve_path = os.path.join(privdata_path, str(election_id), 'tally_approved')
 
     # create the tally_approved flag file
     open(approve_path, 'a').close()
@@ -299,8 +299,8 @@ class PerformTallyTask(TaskHandler):
         election_id = input_data['election_id']
         session_id = input_data['session_id']
 
-        if not re.match("^[a-zA-Z0-9_-]+$", election_id):
-            raise TaskError(dict(reason="invalid characters in election_id"))
+        if election_id <= 0:
+            raise TaskError(dict(reason="invalid election_id, must be positive"))
         if not re.match("^[a-zA-Z0-9_-]+$", session_id):
             raise TaskError(dict(reason="invalid characters in session_id"))
 
@@ -319,7 +319,7 @@ class PerformTallyTask(TaskHandler):
                 reason="perform tally task sent by an invalid authority"))
 
         privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-        election_privpath = os.path.join(privdata_path, election_id)
+        election_privpath = os.path.join(privdata_path, str(election_id))
         session_privpath = os.path.join(election_privpath, session_id)
         tally_approved_path = os.path.join(election_privpath, 'tally_approved')
 
@@ -363,8 +363,8 @@ def verify_and_publish_tally(task):
     sender_ssl_cert = task.get_data()['sender_ssl_cert']
     input_data = task.get_data()['input_data']
     election_id = input_data['election_id']
-    if not re.match("^[a-zA-Z0-9_-]+$", election_id):
-        raise TaskError(dict(reason="invalid characters in election_id"))
+    if election_id <= 0:
+        raise TaskError(dict(reason="election_id must be positive"))
 
     election = db.session.query(Election)\
         .filter(Election.id == election_id).first()
@@ -381,10 +381,10 @@ def verify_and_publish_tally(task):
             reason="perform tally task sent by an invalid authority"))
 
     privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(privdata_path, election_id)
+    election_privpath = os.path.join(privdata_path, str(election_id))
 
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
-    election_pubpath = os.path.join(pubdata_path, election_id)
+    election_pubpath = os.path.join(pubdata_path, str(election_id))
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
     tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha256')
 
@@ -395,7 +395,7 @@ def verify_and_publish_tally(task):
     # check no tally exists yet
     if os.path.exists(tally_path):
         raise TaskError(dict(reason="tally already exists, "
-                             "election_id = %s" % election_id))
+                             "election_id = %d" % election_id))
 
     pubkeys = []
     for session in election.sessions.all():
@@ -405,7 +405,7 @@ def verify_and_publish_tally(task):
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
 
-        pubkey_path = os.path.join(privdata_path, election_id, session.id, 'publicKey_json')
+        pubkey_path = os.path.join(privdata_path, str(election_id), session.id, 'publicKey_json')
         with open(pubkey_path, 'r') as pubkey_file:
             pubkeys.append(json.loads(pubkey_file.read()))
             pubkey_file.close()
@@ -460,8 +460,8 @@ def verify_and_publish_tally(task):
     timestamp = MAGIC_TIMESTAMP
 
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
-    pubkeys_path = os.path.join(privdata_path, election_id, 'pubkeys_json')
-    questions_path = os.path.join(privdata_path, election_id, 'questions_json')
+    pubkeys_path = os.path.join(privdata_path, str(election_id), 'pubkeys_json')
+    questions_path = os.path.join(privdata_path, str(election_id), 'questions_json')
 
     with open(pubkeys_path, mode='w') as pubkeys_f:
         pubkeys_f.write(json.dumps(pubkeys,

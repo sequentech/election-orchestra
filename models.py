@@ -29,7 +29,7 @@ class Election(db.Model):
     Represents an election, with multiple possible questions, each of them
     will be tallied separatedly with its own session (and its own pubkey).
     '''
-    id = db.Column(db.Unicode(255), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
 
 
     num_parties = db.Column(db.Integer)
@@ -90,7 +90,7 @@ class Session(db.Model):
     '''
     id = db.Column(db.Unicode(255), primary_key=True)
 
-    election_id = db.Column(db.Unicode(255), db.ForeignKey('election.id'))
+    election_id = db.Column(db.Integer, db.ForeignKey('election.id'))
 
     question_number = db.Column(db.Integer)
 
@@ -134,7 +134,7 @@ class Authority(db.Model):
 
     orchestra_url = db.Column(db.Unicode(1024))
 
-    election_id = db.Column(db.Unicode(255), db.ForeignKey('election.id'))
+    election_id = db.Column(db.Integer, db.ForeignKey('election.id'))
 
     election = db.relationship('Election',
         backref=db.backref('authorities', lazy='dynamic'))

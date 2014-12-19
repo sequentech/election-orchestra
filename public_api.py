@@ -263,7 +263,7 @@ def post_tally():
     if not data:
         return error(400, "invalid json")
     requirements = [
-        {'name': u'election_id', 'isinstance': basestring},
+        {'name': u'election_id', 'isinstance': int},
         {'name': u'callback_url', 'isinstance': basestring},
         {'name': u'votes_url', 'isinstance': basestring},
         {'name': u'votes_hash', 'isinstance': basestring},

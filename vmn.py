@@ -61,9 +61,10 @@ def v_reset(election_private_path):
 def v_verify(protinfo_path, proofs_path):
     return subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
 
-def v_convert_pkey_json(session_privpath):
+def v_convert_pkey_json(session_privpath, output_filter):
   return call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
-    "publicKey_json"], cwd=session_privpath, timeout=20, check_ret=0)
+    "publicKey_json"], cwd=session_privpath, timeout=20, check_ret=0,
+    output_filter=output_filter)
 
 def v_convert_ctexts_json(session_privpath):
     return subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",

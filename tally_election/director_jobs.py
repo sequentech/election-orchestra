@@ -144,10 +144,10 @@ def return_election(task):
     callback_url = input_data['callback_url']
 
     pub_data_url = app.config.get('PUBLIC_DATA_BASE_URL', '')
-    tally_url = pub_data_url + '/' + election_id + '/tally.tar.gz'
+    tally_url = pub_data_url + '/' + str(election_id) + '/tally.tar.gz'
 
     pub_data_path = app.config.get('PUBLIC_DATA_PATH', '')
-    tally_hash_path = os.path.join(pub_data_path, election_id, 'tally.tar.gz.sha256')
+    tally_hash_path = os.path.join(pub_data_path, str(election_id), 'tally.tar.gz.sha256')
 
     f = open(tally_hash_path, 'r')
     tally_hash = f.read()
