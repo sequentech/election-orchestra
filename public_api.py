@@ -215,7 +215,7 @@ def post_tally():
     Example request:
     POST /tally
     {
-        "election_id": "vota4",
+        "election_id": 111,
         "callback_url": "https://127.0.0.1:5000/public_api/receive_tally",
         "votes_url": "https://127.0.0.1:5000/public_data/vota4/encrypted_ciphertexts",
         "votes_hash": "ni:///sha-256;f4OxZX_x_FO5LcGBSKHWXfwtSx-j1ncoSt3SABJtkGk"
@@ -275,8 +275,8 @@ def post_tally():
             print req['name'], data.get(req['name'], None), type(data[req['name']])
             return error(400, "invalid %s parameter" % req['name'])
 
-    if not re.match("^[a-zA-Z0-9_-]+$", data['election_id']):
-        return error(400, "invalid characters in election id")
+    if data['election_id'] <= 0:
+        return error(400, "election id must be >= 1")
 
     if not data['votes_hash'].startswith("ni:///sha-256;"):
         return error(400, "invalid votes_hash, must be sha256")
