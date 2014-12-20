@@ -285,7 +285,7 @@ def generate_private_info_verificatum(task):
         protinfo_file.close()
 
     # set the output data of parent task, and update sender
-    task.get_parent().set_output_data(protinfos, send_update_to_sender=True)
+    task.get_parent().set_output_data(protinfos)
 
 @decorators.task(action="generate_public_key", queue="verificatum_queue")
 def generate_public_key(task):

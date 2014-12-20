@@ -88,7 +88,7 @@ class CreateElectionTask(TaskHandler):
         # 2. generate private info and protocol info files on each authority
         # (and for each question/session). Also, each authority might require
         # the approval of the task by its operator.
-        priv_info_task = SequestialTask()
+        priv_info_task = SequentialTask()
         for authority in election.authorities:
             subtask = SimpleTask(
                 receiver_url=authority.orchestra_url,
