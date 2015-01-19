@@ -29,8 +29,7 @@ class Election(db.Model):
     Represents an election, with multiple possible questions, each of them
     will be tallied separatedly with its own session (and its own pubkey).
     '''
-    id = db.Column(db.Integer, primary_key=True)
-
+    id = db.Column(db.BigInteger, primary_key=True)
 
     num_parties = db.Column(db.Integer)
 
