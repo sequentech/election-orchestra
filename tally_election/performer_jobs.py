@@ -120,7 +120,9 @@ def review_tally(task):
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
     election_privpath = os.path.join(private_data_path, str(election_id))
 
-    tally_path = os.path.join(election_privpath, 'tally.tar.gz')
+    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
+    election_pubpath = os.path.join(pubdata_path, str(election_id))
+    tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
 
     if os.path.exists(tally_path):
         raise TaskError(dict(reason="election already tallied"))
