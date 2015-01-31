@@ -24,6 +24,7 @@ import subprocess
 import json
 import requests
 import shutil
+import signal
 from datetime import datetime
 
 from frestq.app import app, db
@@ -335,7 +336,16 @@ class PerformTallyTask(TaskHandler):
         #call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
         #    "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
         #    timeout=5*3600, check_ret=0)
-        v_mix(session_privpath)
+
+        def output_filter(p, o, output):
+            '''
+            detect common errors and kill process in that case
+            '''
+            if 'Exception in thread "main"' in o:
+                p.kill(signal.SIGKILL)
+                raise TaskError(dict(reason='error executing verificatum'))
+
+        v_mix(session_privpath, output_filter)
 
     def handle_error(self, error):
         '''
@@ -354,7 +364,10 @@ class PerformTallyTask(TaskHandler):
         # reset securely
         #subprocess.check_call(["vmn", "-reset", "privInfo.xml", "protInfo.xml", "-f"],
         #    cwd=election_private_path)
-        v_reset(election_private_path)
+        try:
+            v_reset(election_private_path)
+        except Exception:
+            print("cannot reset the tally, maybe it doesn't exists")
 
 
 @decorators.task(action="verify_and_publish_tally", queue="orchestra_performer")

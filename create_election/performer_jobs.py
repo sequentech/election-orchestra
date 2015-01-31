@@ -21,6 +21,7 @@ import codecs
 import subprocess
 import json
 import shutil
+import signal
 from datetime import datetime
 
 from frestq import decorators

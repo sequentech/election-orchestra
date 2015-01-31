@@ -59,9 +59,12 @@ import create_election.performer_jobs
 import tally_election.director_jobs
 import tally_election.performer_jobs
 from public_api import public_api
+from taskqueue import start_queue
 
 app.configure_app(config_object=__name__)
 app.register_blueprint(public_api, url_prefix='/public_api')
+
+start_queue()
 
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "create-tarball":

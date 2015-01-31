@@ -30,6 +30,8 @@ from frestq.app import app, db
 from models import Election, Authority, Session
 from utils import mkdir_recursive
 
+from taskqueue import end_task
+
 @decorators.local_task
 @decorators.task(action="tally_election", queue="launch_task")
 class TallyElectionTask(TaskHandler):
@@ -134,6 +136,7 @@ class TallyElectionTask(TaskHandler):
         r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
                             verify=False)
         print r.text
+        end_task()
 
 
 @decorators.local_task
@@ -168,3 +171,4 @@ def return_election(task):
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
                         verify=False)
     print r.text
+    end_task()

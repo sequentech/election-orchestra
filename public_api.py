@@ -16,6 +16,8 @@
 # along with election-orchestra.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import pickle
+import base64
 import json
 import re
 from datetime import datetime
@@ -26,8 +28,11 @@ from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask, TaskError
 from frestq.app import app, db
 
-from models import Election, Authority
+from models import Election, Authority, QueryQueue
 from create_election.performer_jobs import check_election_data
+
+
+from taskqueue import queue_task, apply_task, dequeue_task
 
 public_api = Blueprint('public_api', __name__)
 
@@ -37,6 +42,17 @@ def error(status, message=""):
     else:
         data=""
     return make_response(data, status)
+
+
+@public_api.route('/dequeue', methods=['GET'])
+def dequeue():
+    try:
+        dequeue_task()
+    except Exception, e:
+        return make_response(dumps(dict(status=e.message)), 202)
+
+    return make_response(dumps(dict(status="ok")), 202)
+
 
 @public_api.route('/election', methods=['POST'])
 def post_election():
@@ -157,51 +173,12 @@ def post_election():
         }
     }
     '''
+
     data = request.get_json(force=True, silent=True)
-    if not data:
-        return error(400, "invalid json")
+    d = base64.b64encode(pickle.dumps(data))
+    queueid = queue_task(task='election', data=d)
 
-    try:
-        check_election_data(data, True)
-    except TaskError, e:
-        print e
-        return error(400, e.data['reason'])
-
-    e = Election(
-        id = data['id'],
-        title = data['title'],
-        description = data['description'],
-        questions = dumps(data['questions']),
-        start_date = data['start_date'],
-        end_date = data['end_date'],
-        callback_url = data['callback_url'],
-        num_parties = len(data['authorities']),
-        threshold_parties = len(data['authorities']),
-        status = 'creating'
-    )
-    db.session.add(e)
-
-    for auth_data in data['authorities']:
-        authority = Authority(
-            name = auth_data['name'],
-            ssl_cert = auth_data['ssl_cert'],
-            orchestra_url = auth_data['orchestra_url'],
-            election_id = data['id']
-        )
-        db.session.add(authority)
-    db.session.commit()
-
-    task = SimpleTask(
-        receiver_url=app.config.get('ROOT_URL', ''),
-        action="create_election",
-        queue="launch_task",
-        data={
-            'election_id': data['id']
-        }
-    )
-    task.create_and_send()
-
-    return make_response(dumps(dict(task_id=task.get_data()['id'])), 202)
+    return make_response(dumps(dict(queue_id=queueid)), 202)
 
 
 @public_api.route('/tally', methods=['POST'])
@@ -260,46 +237,9 @@ def post_tally():
 
     # first of all, parse input data
     data = request.get_json(force=True, silent=True)
-    if not data:
-        return error(400, "invalid json")
-    requirements = [
-        {'name': u'election_id', 'isinstance': int},
-        {'name': u'callback_url', 'isinstance': basestring},
-        {'name': u'votes_url', 'isinstance': basestring},
-        {'name': u'votes_hash', 'isinstance': basestring},
-    ]
-
-    for req in requirements:
-        if req['name'] not in data or not isinstance(data[req['name']],
-            req['isinstance']):
-            print req['name'], data.get(req['name'], None), type(data[req['name']])
-            return error(400, "invalid %s parameter" % req['name'])
-
-    if data['election_id'] <= 0:
-        return error(400, "election id must be >= 1")
-
-    if not data['votes_hash'].startswith("ni:///sha-256;"):
-        return error(400, "invalid votes_hash, must be sha256")
-
-    election_id = data['election_id']
-    election = db.session.query(Election)\
-        .filter(Election.id == election_id).first()
-    if election is None:
-        return error(400, "unknown election with election_id = %s" % election_id)
-
-    task = SimpleTask(
-        receiver_url=app.config.get('ROOT_URL', ''),
-        action="tally_election",
-        queue="launch_task",
-        data={
-            'election_id': data['election_id'],
-            'callback_url': data['callback_url'],
-            'votes_url': data['votes_url'],
-            'votes_hash': data['votes_hash'],
-        }
-    )
-    task.create_and_send()
-    return make_response(dumps(dict(task_id=task.get_data()['id'])), 202)
+    d = base64.b64encode(pickle.dumps(data))
+    queueid = queue_task(task='tally', data=d)
+    return make_response(dumps(dict(queue_id=queueid)), 202)
 
 @public_api.route('/receive_election', methods=['POST'])
 def receive_election():

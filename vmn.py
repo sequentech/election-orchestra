@@ -48,10 +48,10 @@ def v_gen_public_key(session_privpath, output_filter):
              timeout=10*60, check_ret=0, output_filter=output_filter)
 
 @pre_kill_verificatum
-def v_mix(session_privpath):
+def v_mix(session_privpath, output_filter=None):
     return call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
         "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
-        timeout=5*3600, check_ret=0)
+        timeout=5*3600, check_ret=0, output_filter=output_filter)
 
 @pre_kill_verificatum
 def v_reset(election_private_path):

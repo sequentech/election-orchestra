@@ -35,6 +35,8 @@ from models import Election, Authority, Session
 from utils import mkdir_recursive
 from vmn import *
 
+from taskqueue import end_task
+
 @decorators.local_task
 @decorators.task(action="create_election", queue="launch_task")
 class CreateElectionTask(TaskHandler):
@@ -162,6 +164,7 @@ class CreateElectionTask(TaskHandler):
         }
         r = session.request('post', callback_url, data=dumps(fail_data),
                             verify=False)
+        end_task()
 
 
 @decorators.task(action="merge_protinfo", queue="orchestra_director")
@@ -292,3 +295,4 @@ def return_election(task):
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
                         verify=False)
     print r.text
+    end_task()

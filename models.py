@@ -160,3 +160,11 @@ class Authority(db.Model):
             'orchestra_url': self.orchestra_url,
             'election_id': self.election_id
         }
+
+
+class QueryQueue(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    task = db.Column(db.Unicode(20))
+    data = db.Column(db.UnicodeText)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    doing = db.Column(db.Boolean, default=False)
