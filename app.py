@@ -64,11 +64,12 @@ from taskqueue import start_queue
 app.configure_app(config_object=__name__)
 app.register_blueprint(public_api, url_prefix='/public_api')
 
-start_queue()
-
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "create-tarball":
         from tools import create_tarball
         create_tarball.create(sys.argv[2])
         exit(0)
     app.run(parse_args=True)
+else:
+    start_queue()
+
