@@ -60,7 +60,7 @@ def apply_task(task, data):
 
 
 def end_task():
-    doing = db.session.query(QueryQueue).with_for_update(nowait=True, of=QueryQueue).filter(QueryQueue.doing == True).one()
+    doing = db.session.query(QueryQueue).with_for_update(nowait=True).filter(QueryQueue.doing == True).one()
     db.session.delete(doing)
     db.session.commit()
     safe_dequeue()
