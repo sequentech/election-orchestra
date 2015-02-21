@@ -34,6 +34,17 @@ from models import Election, Authority, Session
 from utils import *
 from vmn import *
 
+def check_pipe(requirements, l):
+    for req in requirements:
+        for data in l:
+            if req['name'] not in data or not isinstance(data[req['name']],
+                req['isinstance']):
+                return False
+    return True
+
+def pluck(l, key):
+    return [i[key] for i in l]
+
 def check_election_data(data, check_extra):
     '''
     check election input data. Used both in public_api.py:post_election and
@@ -107,6 +118,25 @@ def check_election_data(data, check_extra):
 
     if not unique_by_keys(data['authorities'], ['ssl_cert', 'orchestra_url']):
         raise TaskError(dict(reason="invalid authorities parameters"))
+
+    q_reqs = [
+        {'name': 'text', 'isinstance': basestring},
+        {'name': 'id', 'isinstance': int},
+    ]
+
+    task_error = TaskError(dict(reason="invalid question/answers"))
+    for question in data['questions']:
+        answers = question['answers']
+        if not unique_by_keys(answers, ['id', 'text']):
+            raise task_error
+
+        if not check_pipe(q_reqs, answers):
+            raise task_error
+
+        l_ids = pluck(answers, 'id')
+        if set(l_ids) != set(range(0, len(l_ids))):
+            raise task_error
+
 
 @decorators.task(action="generate_private_info", queue="orchestra_performer")
 def generate_private_info(task):
