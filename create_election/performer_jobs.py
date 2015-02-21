@@ -125,7 +125,11 @@ def check_election_data(data, check_extra):
     ]
 
     task_error = TaskError(dict(reason="invalid question/answers"))
-    for question in data['questions']:
+    questions = data['questions']
+    if isinstance(questions, basestring):
+        questions = json.loads(questions)
+
+    for question in questions:
         answers = question['answers']
         if not unique_by_keys(answers, ['id', 'text']):
             raise task_error
