@@ -4,16 +4,16 @@ DEBUG = True
 ROOT_URL = 'https://127.0.0.1:5000/api/queues'
 
 # URL to our HTTP server
-VERIFICATUM_SERVER_URL = 'http://127.0.0.1'
+VFORK_SERVER_URL = 'http://127.0.0.1'
 
-VERIFICATUM_SERVER_PORT_RANGE = [4081, 4083]
+VFORK_SERVER_PORT_RANGE = [4081, 4083]
 
 # Socket address given as <hostname>:<port> to our hint server.
 # A hint server is a simple UDP server that reduces latency and
 # traffic on the HTTP servers.
-VERIFICATUM_HINT_SERVER_SOCKET = '127.0.0.1'
+VFORK_HINT_SERVER_SOCKET = '127.0.0.1'
 
-VERIFICATUM_HINT_SERVER_PORT_RANGE = [8081, 8083]
+VFORK_HINT_SERVER_PORT_RANGE = [8081, 8083]
 
 import os
 ROOT_PATH = os.path.split(os.path.abspath(__file__))[0]
@@ -33,13 +33,13 @@ AUTOACCEPT_REQUESTS = True
 
 MAX_NUM_QUESTIONS_PER_ELECTION = 40
 
-KILL_ALL_VERIFICATUM_BEFORE_START_NEW = False
+KILL_ALL_VFORK_BEFORE_START_NEW = False
 
 QUEUES_OPTIONS = {
     'launch_task': {
         'max_threads': 1
     },
-    'verificatum_queue': {
+    'vfork_queue': {
         'max_threads': 1,
     }
 }

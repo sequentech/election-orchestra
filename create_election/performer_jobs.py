@@ -261,18 +261,18 @@ def generate_private_info(task):
             data=info_text)
         task.add(approve_task)
 
-    verificatum_task = SimpleTask(
+    vfork_task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
-        action="generate_private_info_verificatum",
+        action="generate_private_info_vfork",
         queue="orchestra_performer",
         data=dict())
-    task.add(verificatum_task)
+    task.add(vfork_task)
 
-@decorators.task(action="generate_private_info_verificatum", queue="orchestra_performer")
+@decorators.task(action="generate_private_info_vfork", queue="orchestra_performer")
 @decorators.local_task
-def generate_private_info_verificatum(task):
+def generate_private_info_vfork(task):
     '''
-    After the task has been approved, execute verificatum to generate the
+    After the task has been approved, execute vfork to generate the
     private info
     '''
     # first of all, check that parent task is approved, but we only check that
@@ -322,7 +322,7 @@ def generate_private_info_verificatum(task):
     # set the output data of parent task, and update sender
     task.get_parent().set_output_data(protinfos)
 
-@decorators.task(action="generate_public_key", queue="verificatum_queue")
+@decorators.task(action="generate_public_key", queue="vfork_queue")
 def generate_public_key(task):
     '''
     Generates the local private info for a new election
@@ -356,7 +356,7 @@ def generate_public_key(task):
         if "Unable to download signature!" in o or\
                 "ERROR: Invalid socket address!" in o:
             p.kill(signal.SIGKILL)
-            raise TaskError(dict(reason='error executing verificatum'))
+            raise TaskError(dict(reason='error executing vfork'))
 
     #call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
     #         timeout=10*60, check_ret=0, output_filter=output_filter)
@@ -369,7 +369,7 @@ def generate_public_key(task):
         '''
         if "Failed to parse info files!" in o:
             p.kill(signal.SIGKILL)
-            raise TaskError(dict(reason='error executing verificatum'))
+            raise TaskError(dict(reason='error executing vfork'))
 
     # transform it into json format
     #call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",

@@ -227,7 +227,7 @@ def merge_protinfo_task(task):
             subtask = SimpleTask(
                 receiver_url=authority.orchestra_url,
                 action="generate_public_key",
-                queue="verificatum_queue",
+                queue="vfork_queue",
                 data=dict(
                     session_id=session_id,
                     election_id=election_id,

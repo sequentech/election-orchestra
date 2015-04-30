@@ -30,9 +30,9 @@ SERVER_PORT = 5001
 
 ROOT_URL = 'https://127.0.0.1:5001/api/queues'
 
-VERIFICATUM_SERVER_PORT_RANGE = [4084, 4087]
+VFORK_SERVER_PORT_RANGE = [4084, 4087]
 
-VERIFICATUM_HINT_SERVER_PORT_RANGE = [8084, 8087]
+VFORK_HINT_SERVER_PORT_RANGE = [8084, 8087]
 
 # security configuration
 SSL_CERT_PATH = '%s/certs/selfsigned2/cert.pem' % ROOT_PATH
@@ -42,7 +42,7 @@ ALLOW_ONLY_SSL_CONNECTIONS = True
 AUTOACCEPT_REQUESTS = True
 
 QUEUES_OPTIONS = {
-    'verificatum_queue': {
+    'vfork_queue': {
         'max_threads': 1,
     }
 }

@@ -3,7 +3,7 @@ Election Orchestra Benchmarking
 
 These scripts provide a way to run benchmarks on election orchestra to get basic
 timing and memory statistics. The data is obtained through calls to gnu time
-inserted into verificatum scripts. These scripts use eotest, so that should be
+inserted into vfork scripts. These scripts use eotest, so that should be
 working.
 
 Installation
@@ -65,7 +65,7 @@ over 100 for multicore). Refer to gnu time for for info on these values.
 Cleaning up
 ===========
 
-Bench.sh reverts changes made to verificatum scripts after it is run. You can make sure this has worked
+Bench.sh reverts changes made to vfork scripts after it is run. You can make sure this has worked
 by manually copying the bak files that hold the original scripts.
 
 The clear_disk.sh script can be used to delete files generated during tests. To avoid accidental use,

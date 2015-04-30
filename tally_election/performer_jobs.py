@@ -177,7 +177,7 @@ def review_tally(task):
     if not constant_time_compare(input_hash, hash_file(ciphertexts_path)):
         raise TaskError(dict(reason="invalid votes_hash"))
 
-    # transform input votes into something readable by verificatum. Basically
+    # transform input votes into something readable by vfork. Basically
     # we read each line of the votes file, which corresponds with a ballot,
     # and split each choice to each session
     # So basically each input line looks like:
@@ -218,7 +218,7 @@ def review_tally(task):
             i = 0
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
-                # otherwise verificatum won't read it well
+                # otherwise vfork won't read it well
                 outvotes_files[i].write(json.dumps(choice,
                     ensure_ascii=False, sort_keys=True, separators=(',', ':')))
                 outvotes_files[i].write("\n")
@@ -291,7 +291,7 @@ def check_tally_approval(task):
     open(approve_path, 'a').close()
 
 
-@decorators.task(action="perform_tally", queue="verificatum_queue")
+@decorators.task(action="perform_tally", queue="vfork_queue")
 class PerformTallyTask(TaskHandler):
     def execute(self):
         '''
@@ -343,7 +343,7 @@ class PerformTallyTask(TaskHandler):
             '''
             if 'Exception in thread "main"' in o:
                 p.kill(signal.SIGKILL)
-                raise TaskError(dict(reason='error executing verificatum'))
+                raise TaskError(dict(reason='error executing vfork'))
 
         v_mix(session_privpath, output_filter)
 
@@ -439,9 +439,9 @@ def verify_and_publish_tally(task):
         #          timeout=3600)
         v_convert_plaintexts_json(session_privpath)
 
-        # verify the proofs. sometimes verificatum raises an exception at the end
+        # verify the proofs. sometimes vfork raises an exception at the end
         # so we dismiss it if the verification is successful. TODO: fix that in
-        # verificatum
+        # vfork
         try:
             # output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
             output = v_verify(protinfo_path, proofs_path)

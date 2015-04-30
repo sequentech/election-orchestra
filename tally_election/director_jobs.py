@@ -65,7 +65,7 @@ class TallyElectionTask(TaskHandler):
         self.task.add(parallel_task)
 
         # 2. once all the authorities have reviewed and accepted the tallies
-        # (one per question/session), launch verificatum to perform it
+        # (one per question/session), launch vfork to perform it
         seq_task = SequentialTask()
         self.task.add(seq_task)
         for session_id in session_ids:
@@ -75,7 +75,7 @@ class TallyElectionTask(TaskHandler):
                 auth_task = SimpleTask(
                     receiver_url=authority.orchestra_url,
                     action="perform_tally",
-                    queue="verificatum_queue",
+                    queue="vfork_queue",
                     data={
                         'election_id': data['election_id'],
                         'session_id': session_id

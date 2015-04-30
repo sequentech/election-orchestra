@@ -85,7 +85,7 @@ class Election(db.Model):
 
 class Session(db.Model):
     '''
-    Refers verificatum session, with its own public key and protinfo
+    Refers vfork session, with its own public key and protinfo
     '''
     id = db.Column(db.Unicode(255), primary_key=True)
 

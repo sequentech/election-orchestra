@@ -2,7 +2,7 @@ Election Orchestra
 ==================
 
 This software orchestrates the authorities servers to create election
-public-keys and perform the tallying using verificatum.
+public-keys and perform the tallying using vfork.
 
 Installation
 ============
@@ -128,7 +128,7 @@ To see the status of a task:
     |- frestq.virtual_empty_task.internal.frestq - parallel (4dba0478, finished)
     |  |- generate_private_info.orchestra_performer - sequential (17c80822, finished)
     |  |  |- frestq.virtual_empty_task.internal.frestq - external (86ba85d2, finished, root)
-    |  |  |- generate_private_info_verificatum.orchestra_performer - sequential (b782e6a9, finished)
+    |  |  |- generate_private_info_vfork.orchestra_performer - sequential (b782e6a9, finished)
     |  |- generate_private_info.orchestra_performer - simple (f9395f0a, finished)
     |- merge_protinfo.orchestra_director - sequential (3afddaba, executing)
     |  |- frestq.virtual_empty_task.internal.frestq - synchronized (5825a61b, executing)
