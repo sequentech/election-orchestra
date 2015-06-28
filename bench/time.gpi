@@ -7,5 +7,5 @@ h(x) = e*x + f
 title_f(a,b) = sprintf('f(x) = %.4fx + %.2f', a, b)
 fit f(x) 'data' u 1:8 via a, b
 fit g(x) 'data' u 1:10 via c, d
-fit h(x) 'data' u 1:13 via e, f
-plot "data" using 1:10 title "Tally time", "data" using 1:8 title "Mix time", "data" using 1:13 title "Ver time", g(x) t title_f(c,d), f(x) t title_f(a,b), h(x) t title_f(e,f)
+fit h(x) 'data' u 1:14 via e, f
+plot "data" using 1:10 title "Tally time (s)", "data" using 1:8 title "Mix time (s)", "data" using 1:14 title "Verification time (s)", g(x) t title_f(c,d), f(x) t title_f(a,b), h(x) t title_f(e,f)

@@ -23,7 +23,7 @@ do
 
     data="$action $cpu $elapsed_sec $memory"
     [ -z $tally_total ] || data="$data $tally_total"
-    # [ -z $size ] || data="$data $size"
+    [ -z $size ] || data="$data $size"
     # echo data is $data
     line="${LINES[$votes]}$data "
     LINES[$votes]="$line"
