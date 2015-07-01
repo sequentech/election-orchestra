@@ -16,11 +16,17 @@ def safe_dequeue():
     except Exception, e:
         return False
 
+def start_queue(queue_continue=False):
+    if not queue_continue:
+        doing = db.session.query(QueryQueue).all()
+        for i in doing:
+            i.doing = False
+            db.session.delete(i)
+    else:
+        doing = db.session.query(QueryQueue).filter(QueryQueue.doing == True)
+        for i in doing:
+            i.doing = False
 
-def start_queue():
-    doing = db.session.query(QueryQueue).filter(QueryQueue.doing == True)
-    for i in doing:
-        i.doing = False
     db.session.commit()
     t = threading.Thread(target=safe_dequeue)
     t.start()
