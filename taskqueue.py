@@ -88,7 +88,7 @@ def election_task(data):
     e = Election(
         id = data['id'],
         title = data['title'],
-        description = data['description'],
+        description = data['description'][:255],
         questions = dumps(data['questions']),
         start_date = data['start_date'],
         end_date = data['end_date'],
