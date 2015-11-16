@@ -34,14 +34,17 @@ from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
-from models import Election, Authority, Session
+from models import Election, Authority, Session, Ballot
 from utils import *
 from vmn import *
-from sha256 import hash_file
+from sha256 import hash_file, hash_data
 
 # we just use always the same timestamp for the files for creating
 # deterministic tars
 MAGIC_TIMESTAMP = 1394060400
+
+# Maximum number of parameters used for an SQL Query
+LEN_QUERY_GROUP = 512
 
 def verify_pok_plaintext(pk, proof, ciphertext):
     '''
@@ -124,9 +127,12 @@ def review_tally(task):
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
     election_pubpath = os.path.join(pubdata_path, str(election_id))
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
+    allow_disjoint_multiple_tallies = os.path.join(election_privpath, 'allow_disjoint_multiple_tallies')
 
-    if os.path.exists(tally_path):
-        raise TaskError(dict(reason="election already tallied"))
+    if not os.path.exists(allow_disjoint_multiple_tallies) and os.path.exists(tally_path):
+        raise TaskError(dict(reason="election already tallied and multiple tallies not allowed"))
+
+    # TODO: check that this tally doesn't contain votes from any previous tally
 
     pubkeys = []
     for session in election.sessions.all():
@@ -196,20 +202,32 @@ def review_tally(task):
     with open(pubkeys_path, mode='w') as pubkeys_f:
         pubkeys_f.write(pubkeys_s)
 
-    num_questions = len(election.sessions.all())
+    sessions = election.sessions.all()
+    num_questions = len(sessions)
     invalid_votes = 0
     for qnum in range(num_questions):
         pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
         pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
 
+    def check_ballots_uncounted(session, ballot_hashes):
+        '''
+        check that no ballot has been used before, otherwise raise error as no
+        ballot is allowed to be counted twice
+        '''
+        query = session.ballots.filter(Ballot.ballot_hash.in_(hash_groups[i]))
+        if query.count() > 0:
+            hashes = json.dumps([ballot.ballot_hash for ballot in query])
+            raise TaskError(dict(reason="error, some ballots already tallied election_id = %s, session_id = %s, duplicated_ballot_hashes = %s" % (str(election_id), session.id, hashes)))
+
     try:
         invotes_file = open(ciphertexts_path, 'r')
-        for session in election.sessions.all():
+        for session in sessions:
             outvotes_path = os.path.join(election_privpath, session.id,
                 'ciphertexts_json')
             outvotes_files.append(open(outvotes_path, 'w'))
         print("\n------ Reading and verifying POK of plaintext for the votes..\n")
         lnum = 0
+        hash_groups = [[] for _ in sessions]
         for line in invotes_file:
             lnum += 1
             line_data = json.loads(line)
@@ -219,10 +237,27 @@ def review_tally(task):
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
                 # otherwise vfork won't read it well
-                outvotes_files[i].write(json.dumps(choice,
-                    ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+                ballot_data = json.dumps(choice,
+                    ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+                hash_groups[i].append(hash_data(ballot_data))
+
+                # Every LEN_QUERY_GROUP hashes, we check that no ballot has
+                # been used before, otherwise raise error as no ballot is
+                # allowed to be counted twice
+                if len(hash_groups[i]) >= LEN_QUERY_GROUP:
+                    check_ballots_uncounted(sessions[i], hash_groups[i])
+                    # reset group
+                    hash_groups[i] = []
+
+                outvotes_files[i].write(ballot_data)
                 outvotes_files[i].write("\n")
                 i += 1
+
+        # check the remaining ballot hashes have not been tallied
+        for i, group in enumerate(hash_groups):
+            if len(group) > 0:
+              check_ballots_uncounted(sessions[i], group)
+
     finally:
         print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
 
@@ -237,7 +272,7 @@ def review_tally(task):
             f.close()
 
     # Convert each ciphertexts_json of each session into ciphertexts_raw
-    for session in election.sessions.all():
+    for session in sessions:
         session_privpath = os.path.join(election_privpath, session.id)
         #subprocess.check_call(["vmnc", "-ciphs", "-ini", "json",
         #    "ciphertexts_json", "ciphertexts_raw"], cwd=session_privpath)
@@ -402,15 +437,26 @@ def verify_and_publish_tally(task):
     election_pubpath = os.path.join(pubdata_path, str(election_id))
     tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
     tally_hash_path = os.path.join(election_pubpath, 'tally.tar.gz.sha256')
+    allow_disjoint_multiple_tallies = os.path.join(election_privpath, 'allow_disjoint_multiple_tallies')
 
     # check election_pubpath already exists - it should contain pubkey etc
     if not os.path.exists(election_pubpath):
         raise TaskError(dict(reason="election public path doesn't exist"))
 
     # check no tally exists yet
-    if os.path.exists(tally_path):
-        raise TaskError(dict(reason="tally already exists, "
-                             "election_id = %d" % election_id))
+    if not os.path.exists(allow_disjoint_multiple_tallies):
+        if os.path.exists(tally_path):
+            raise TaskError(dict(reason="election already tallied and multiple tallies not allowed"))
+
+    # if we allow multiple tallies and there's any previous tally, save it for backup
+    elif os.path.exists(tally_path):
+        datestr = datetime.fromtimestamp(os.path.getctime(tally_path)).isoformat()
+        new_tally_path = os.path.join(election_pubpath, 'tally_%s.tar.gz' % datestr)
+        new_tally_hash_path = os.path.join(election_pubpath, 'tally_%s.tar.gz.sha256' % datestr)
+        os.rename(tally_path, new_tally_path)
+
+        if os.path.exists(tally_hash_path):
+            os.rename(tally_hash_path, new_tally_hash_path)
 
     pubkeys = []
     for session in election.sessions.all():
@@ -495,6 +541,16 @@ def verify_and_publish_tally(task):
         plaintexts_json_path = os.path.join(session_privpath, 'plaintexts_json')
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+
+        outvotes_path = os.path.join(election_privpath, session.id,
+            'ciphertexts_json')
+        with open(outvotes_path, 'r') as outvotes:
+            for line in outvotes:
+                b = Ballot(
+                    session_id=session.id,
+                    ballot_hash=hash_data(line.strip()))
+                db.session.add(b)
+            db.session.commit()
 
         deterministic_tar_add(tar, plaintexts_json_path,
             os.path.join(session.id, 'plaintexts_json'), timestamp)

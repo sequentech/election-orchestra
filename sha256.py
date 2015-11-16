@@ -24,6 +24,14 @@ from base64 import urlsafe_b64encode
 
 BUF_SIZE = 10*1024
 
+def hash_data(data):
+    '''
+    Return the hexdigest of the data
+    '''
+    hash = hashlib.sha256()
+    hash.update(data)
+    return urlsafe_b64encode(hash.digest())
+
 def hash_file(file_path):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file

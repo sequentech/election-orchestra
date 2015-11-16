@@ -162,6 +162,31 @@ class Authority(db.Model):
         }
 
 
+class Ballot(db.Model):
+    session_id = db.Column(db.Unicode(255), db.ForeignKey('session.id'), primary_key=True)
+
+    ballot_hash = db.Column(db.Unicode(45), primary_key=True)
+
+    session = db.relationship('Session',
+        backref=db.backref('ballots', lazy='dynamic'))
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return '<Ballot %r>' % self.ballot_hash
+
+    def to_dict(self):
+        '''
+        Return an individual instance as a dictionary.
+        '''
+        return {
+            'session_id': self.session_id,
+            'ballot_hash': self.ballot_hash
+        }
+
+
 class QueryQueue(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task = db.Column(db.Unicode(20))
