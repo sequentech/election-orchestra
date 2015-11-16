@@ -368,6 +368,14 @@ class PerformTallyTask(TaskHandler):
                 raise TaskError(dict(reason="task not accepted"))
             os.unlink(tally_approved_path)
 
+        # reset the whole MixNet
+        mixnet_path = os.path.join(session_privpath, "dir", "MixNetElGamal")
+        if os.path.exists(mixnet_path):
+            shutil.rmtree(mixnet_path)
+        bullboard_path = os.path.join(mixnet_path, "BullBoard.BullBoard")
+        if not os.path.exists(bullboard_path):
+            os.makedirs(bullboard_path)
+
         #call_cmd(["vmn", "-mix", "privInfo.xml", "protInfo.xml",
         #    "ciphertexts_raw", "plaintexts_raw"], cwd=session_privpath,
         #    timeout=5*3600, check_ret=0)
