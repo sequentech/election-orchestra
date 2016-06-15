@@ -167,7 +167,10 @@ def review_tally(task):
 
     # retrieve votes/ciphertexts
     callback_url = data['votes_url']
-    r = requests.get(data['votes_url'], verify=False, stream=True)
+    ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+    ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+    r = requests.get(data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
+                     verify=False, stream=True)
     if r.status_code != 200:
         raise TaskError(dict(reason="error downloading the votes"))
 
