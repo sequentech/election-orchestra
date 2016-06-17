@@ -37,6 +37,7 @@ VFORK_HINT_SERVER_PORT_RANGE = [8084, 8087]
 # security configuration
 SSL_CERT_PATH = '%s/certs/selfsigned2/cert.pem' % ROOT_PATH
 SSL_KEY_PATH = '%s/certs/selfsigned2/key-nopass.pem' % ROOT_PATH
+SSL_CALIST_PATH = '%s/certs/selfsigned2/calist' % ROOT_PATH
 ALLOW_ONLY_SSL_CONNECTIONS = True
 
 AUTOACCEPT_REQUESTS = True
