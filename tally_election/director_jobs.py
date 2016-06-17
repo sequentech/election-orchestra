@@ -133,8 +133,9 @@ class TallyElectionTask(TaskHandler):
                 "message": "election tally failed for some reason"
             }
         }
+        ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
         r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
-                            verify=False)
+                            verify=ssl_calist_path)
         print r.text
         end_task()
 
@@ -168,7 +169,8 @@ def return_election(task):
         }
     }
     session = requests.sessions.Session()
+    ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
-                        verify=False)
+                        verify=ssl_calist_path)
     print r.text
     end_task()
