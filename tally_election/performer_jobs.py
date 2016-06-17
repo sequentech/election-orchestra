@@ -170,6 +170,7 @@ def review_tally(task):
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+    print("\nFF callback_url3 " + callback_url)
     r = requests.get(data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
                      verify=ssl_calist_path, stream=True)
     if r.status_code != 200:
