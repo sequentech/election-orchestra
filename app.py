@@ -69,7 +69,7 @@ if __name__ == "__main__":
         from tools import create_tarball
         create_tarball.create(sys.argv[2])
         exit(0)
-    app.run()
+    app.run(parse_args=True)
 else:
     start_queue()
 
