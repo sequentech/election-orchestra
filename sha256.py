@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013  Eduardo Robles Elvira <edulix AT wadobo DOT com>
+# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,14 @@ from functools import partial
 from base64 import urlsafe_b64encode
 
 BUF_SIZE = 10*1024
+
+def hash_data(data):
+    '''
+    Return the hexdigest of the data
+    '''
+    hash = hashlib.sha256()
+    hash.update(data)
+    return urlsafe_b64encode(hash.digest())
 
 def hash_file(file_path):
     '''

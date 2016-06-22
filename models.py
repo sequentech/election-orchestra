@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013  Eduardo Robles Elvira <edulix AT wadobo DOT com>
+# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -159,6 +159,31 @@ class Authority(db.Model):
             'ssl_cert': self.ssl_cert,
             'orchestra_url': self.orchestra_url,
             'election_id': self.election_id
+        }
+
+
+class Ballot(db.Model):
+    session_id = db.Column(db.Unicode(255), db.ForeignKey('session.id'), primary_key=True)
+
+    ballot_hash = db.Column(db.Unicode(45), primary_key=True)
+
+    session = db.relationship('Session',
+        backref=db.backref('ballots', lazy='dynamic'))
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return '<Ballot %r>' % self.ballot_hash
+
+    def to_dict(self):
+        '''
+        Return an individual instance as a dictionary.
+        '''
+        return {
+            'session_id': self.session_id,
+            'ballot_hash': self.ballot_hash
         }
 
 
