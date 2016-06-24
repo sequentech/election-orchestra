@@ -134,9 +134,11 @@ class TallyElectionTask(TaskHandler):
             }
         }
         ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+        ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+        ssl_key_path = app.config.get('SSL_KEY_PATH', '')
         print("\nFF callback_url4 " + callback_url)
         r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
-                            verify=ssl_calist_path)
+                            verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
         print r.text
         end_task()
 
@@ -171,8 +173,10 @@ def return_election(task):
     }
     session = requests.sessions.Session()
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+    ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+    ssl_key_path = app.config.get('SSL_KEY_PATH', '')
     print("\nFF callback_url5 " + callback_url)
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
-                        verify=ssl_calist_path)
+                        verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
     print r.text
     end_task()
