@@ -18,7 +18,7 @@
 import requests
 import ssl
 from requests.adapters import HTTPAdapter
-from urllib3.poolmanager import PoolManager
+from requests.packages.urllib3.poolmanager import PoolManager
 
 class RejectAdapter(HTTPAdapter):
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
