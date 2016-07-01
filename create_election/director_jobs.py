@@ -32,6 +32,7 @@ from frestq.action_handlers import TaskHandler
 from frestq.app import app, db
 
 from models import Election, Authority, Session
+from reject_adapter import RejectAdapter
 from utils import mkdir_recursive
 from vmn import *
 
@@ -145,6 +146,7 @@ class CreateElectionTask(TaskHandler):
         that this task failed
         '''
         session = requests.sessions.Session()
+        session.mount('http://', RejectAdapter())
         input_data = self.task.get_data()['input_data']
         election_id = input_data['election_id']
         election = db.session.query(Election)\
@@ -285,6 +287,7 @@ def return_election(task):
         shutil.copyfile(protinfo_privpath, protinfo_pubpath)
 
     session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
     callback_url = election.callback_url
     ret_data = {
         "status": "finished",

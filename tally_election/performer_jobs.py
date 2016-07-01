@@ -35,6 +35,7 @@ from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
 from models import Election, Authority, Session, Ballot
+from reject_adapter import RejectAdapter
 from utils import *
 from vmn import *
 from sha256 import hash_file, hash_data
@@ -166,12 +167,14 @@ def review_tally(task):
         os.unlink(approve_path)
 
     # retrieve votes/ciphertexts
+    session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
     callback_url = data['votes_url']
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
     print("\nFF callback_url3 " + callback_url)
-    r = requests.get(data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
+    r = session.request('get', data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
                      verify=ssl_calist_path, stream=True)
     if r.status_code != 200:
         raise TaskError(dict(reason="error downloading the votes"))

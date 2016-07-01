@@ -28,6 +28,7 @@ from frestq.action_handlers import TaskHandler, SynchronizedTaskHandler
 from frestq.app import app, db
 
 from models import Election, Authority, Session
+from reject_adapter import RejectAdapter
 from utils import mkdir_recursive
 
 from taskqueue import end_task
@@ -116,6 +117,7 @@ class TallyElectionTask(TaskHandler):
         that this task failed
         '''
         session = requests.sessions.Session()
+        session.mount('http://', RejectAdapter())
         input_data = self.task.get_data()['input_data']
         election_id = input_data['election_id']
         callback_url = input_data['callback_url']
@@ -172,6 +174,7 @@ def return_election(task):
         }
     }
     session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')

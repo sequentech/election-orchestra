@@ -54,6 +54,7 @@ PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/private')
 PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
 
 import models
+import reject_adapter
 import create_election.director_jobs
 import create_election.performer_jobs
 import tally_election.director_jobs
