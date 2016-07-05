@@ -62,11 +62,8 @@ import tally_election.performer_jobs
 from public_api import public_api
 from taskqueue import start_queue
 
-app.configure_app(config_object=__name__)
-app.register_blueprint(public_api, url_prefix='/public_api')
 
-def extra_parse_args(self, extra_parse_func):
-    parser = argparse.ArgumentParser()
+def extra_parse_args(self, parser):
     parser.add_argument("--reset_tally", help="Enable making a second tally for :election_id",
                         type=int)
 
@@ -77,8 +74,10 @@ def extra_run(self):
         return True
 
     return False
-    
+
 if __name__ == "__main__":
+    app.configure_app(scheduler=False, config_object=__name__)
+    app.register_blueprint(public_api, url_prefix='/public_api')
     if len(sys.argv) == 3 and sys.argv[1] == "create-tarball":
         from tools import create_tarball
         create_tarball.create(sys.argv[2])
@@ -86,5 +85,7 @@ if __name__ == "__main__":
     app.run(parse_args=True, extra_parse_func=extra_parse_args, 
             extra_run=extra_run)
 else:
+    app.configure_app(config_object=__name__)
+    app.register_blueprint(public_api, url_prefix='/public_api')
     start_queue()
 
