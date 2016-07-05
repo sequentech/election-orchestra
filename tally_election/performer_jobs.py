@@ -217,7 +217,7 @@ def review_tally(task):
         pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
         pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
 
-    def check_ballots_uncounted(session, ballot_hashes):
+    def check_ballots_uncounted(session, ballot_hashes, i):
         '''
         check that no ballot has been used before, otherwise raise error as no
         ballot is allowed to be counted twice
@@ -253,7 +253,7 @@ def review_tally(task):
                 # been used before, otherwise raise error as no ballot is
                 # allowed to be counted twice
                 if len(hash_groups[i]) >= LEN_QUERY_GROUP:
-                    check_ballots_uncounted(sessions[i], hash_groups[i])
+                    check_ballots_uncounted(sessions[i], hash_groups[i], i)
                     # reset group
                     hash_groups[i] = []
 
@@ -264,7 +264,7 @@ def review_tally(task):
         # check the remaining ballot hashes have not been tallied
         for i, group in enumerate(hash_groups):
             if len(group) > 0:
-              check_ballots_uncounted(sessions[i], group)
+              check_ballots_uncounted(sessions[i], group, i)
 
     finally:
         print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
@@ -615,3 +615,17 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
+
+def reset_tally(election_id):
+    # check election exists
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not created"))
+    
+    # each session is a question
+    sessions = election.sessions.all()
+    for session in sessions:
+        for ballot in session.ballots.all()
+            db.session.delete(ballot)
+    db.session.commit()
