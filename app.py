@@ -64,7 +64,7 @@ from taskqueue import start_queue
 
 
 def extra_parse_args(self, parser):
-    parser.add_argument("--reset_tally", help="Enable making a second tally for :election_id",
+    parser.add_argument("--reset-tally", help="Enable making a second tally for :election_id",
                         type=int)
 
 def extra_run(self):
