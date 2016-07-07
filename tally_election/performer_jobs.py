@@ -625,7 +625,8 @@ def reset_tally(election_id):
     
     # each session is a question
     sessions = election.sessions.all()
-    #for session in sessions:
-    #    for ballot in session.ballots.all()
-    #        db.session.delete(ballot)
+    for session in sessions:
+        ballots = session.ballots
+        for ballot in ballots:
+            db.session.delete(ballot)
     db.session.commit()
