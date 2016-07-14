@@ -217,12 +217,12 @@ def review_tally(task):
         pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
         pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
 
-    def check_ballots_uncounted(session, ballot_hashes, i):
+    def check_ballots_uncounted(session, ballot_hashes):
         '''
         check that no ballot has been used before, otherwise raise error as no
         ballot is allowed to be counted twice
         '''
-        query = session.ballots.filter(Ballot.ballot_hash.in_(hash_groups[i]))
+        query = session.ballots.filter(Ballot.ballot_hash.in_(ballot_hashes))
         if query.count() > 0:
             hashes = json.dumps([ballot.ballot_hash for ballot in query])
             raise TaskError(dict(reason="error, some ballots already tallied election_id = %s, session_id = %s, duplicated_ballot_hashes = %s" % (str(election_id), session.id, hashes)))
@@ -253,7 +253,7 @@ def review_tally(task):
                 # been used before, otherwise raise error as no ballot is
                 # allowed to be counted twice
                 if len(hash_groups[i]) >= LEN_QUERY_GROUP:
-                    check_ballots_uncounted(sessions[i], hash_groups[i], i)
+                    check_ballots_uncounted(sessions[i], hash_groups[i])
                     # reset group
                     hash_groups[i] = []
 
@@ -264,7 +264,7 @@ def review_tally(task):
         # check the remaining ballot hashes have not been tallied
         for i, group in enumerate(hash_groups):
             if len(group) > 0:
-              check_ballots_uncounted(sessions[i], group, i)
+              check_ballots_uncounted(sessions[i], group)
 
     finally:
         print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
