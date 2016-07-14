@@ -222,7 +222,7 @@ def review_tally(task):
         check that no ballot has been used before, otherwise raise error as no
         ballot is allowed to be counted twice
         '''
-        query = session.ballots.filter(Ballot.ballot_hash.in_(hash_groups[i]))
+        query = session.ballots.filter(Ballot.ballot_hash.in_(ballot_hashes))
         if query.count() > 0:
             hashes = json.dumps([ballot.ballot_hash for ballot in query])
             raise TaskError(dict(reason="error, some ballots already tallied election_id = %s, session_id = %s, duplicated_ballot_hashes = %s" % (str(election_id), session.id, hashes)))
@@ -615,3 +615,18 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
+
+def reset_tally(election_id):
+    # check election exists
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not created"))
+    
+    # each session is a question
+    sessions = election.sessions.all()
+    for session in sessions:
+        ballots = session.ballots
+        for ballot in ballots:
+            db.session.delete(ballot)
+    db.session.commit()
