@@ -35,6 +35,7 @@ from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
 from models import Election, Authority, Session, Ballot
+from reject_adapter import RejectAdapter
 from utils import *
 from vmn import *
 from sha256 import hash_file, hash_data
@@ -166,11 +167,15 @@ def review_tally(task):
         os.unlink(approve_path)
 
     # retrieve votes/ciphertexts
+    session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
     callback_url = data['votes_url']
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-    r = requests.get(data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
-                     verify=False, stream=True)
+    ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+    print("\nFF callback_url3 " + callback_url)
+    r = session.request('get', data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
+                     verify=ssl_calist_path, stream=True)
     if r.status_code != 200:
         raise TaskError(dict(reason="error downloading the votes"))
 
@@ -217,7 +222,7 @@ def review_tally(task):
         check that no ballot has been used before, otherwise raise error as no
         ballot is allowed to be counted twice
         '''
-        query = session.ballots.filter(Ballot.ballot_hash.in_(hash_groups[i]))
+        query = session.ballots.filter(Ballot.ballot_hash.in_(ballot_hashes))
         if query.count() > 0:
             hashes = json.dumps([ballot.ballot_hash for ballot in query])
             raise TaskError(dict(reason="error, some ballots already tallied election_id = %s, session_id = %s, duplicated_ballot_hashes = %s" % (str(election_id), session.id, hashes)))
@@ -610,3 +615,18 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
+
+def reset_tally(election_id):
+    # check election exists
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not created"))
+    
+    # each session is a question
+    sessions = election.sessions.all()
+    for session in sessions:
+        ballots = session.ballots
+        for ballot in ballots:
+            db.session.delete(ballot)
+    db.session.commit()

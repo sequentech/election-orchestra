@@ -42,6 +42,7 @@ PUBLIC_DATA_BASE_URL = 'https://127.0.0.1:5000/public_data'
 # security configuration
 SSL_CERT_PATH = '%s/certs/selfsigned/cert.pem' % ROOT_PATH
 SSL_KEY_PATH = '%s/certs/selfsigned/key-nopass.pem' % ROOT_PATH
+SSL_CALIST_PATH = '%s/certs/selfsigned/calist' % ROOT_PATH
 ALLOW_ONLY_SSL_CONNECTIONS = True
 
 AUTOACCEPT_REQUESTS = True

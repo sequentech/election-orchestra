@@ -28,6 +28,7 @@ from frestq.action_handlers import TaskHandler, SynchronizedTaskHandler
 from frestq.app import app, db
 
 from models import Election, Authority, Session
+from reject_adapter import RejectAdapter
 from utils import mkdir_recursive
 
 from taskqueue import end_task
@@ -116,6 +117,7 @@ class TallyElectionTask(TaskHandler):
         that this task failed
         '''
         session = requests.sessions.Session()
+        session.mount('http://', RejectAdapter())
         input_data = self.task.get_data()['input_data']
         election_id = input_data['election_id']
         callback_url = input_data['callback_url']
@@ -133,8 +135,12 @@ class TallyElectionTask(TaskHandler):
                 "message": "election tally failed for some reason"
             }
         }
+        ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+        ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+        ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+        print("\nFF callback_url4 " + callback_url)
         r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
-                            verify=False)
+                            verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
         print r.text
         end_task()
 
@@ -168,7 +174,12 @@ def return_election(task):
         }
     }
     session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
+    ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+    ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+    ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+    print("\nFF callback_url5 " + callback_url)
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
-                        verify=False)
+                        verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
     print r.text
     end_task()

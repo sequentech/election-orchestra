@@ -32,6 +32,7 @@ from frestq.action_handlers import TaskHandler
 from frestq.app import app, db
 
 from models import Election, Authority, Session
+from reject_adapter import RejectAdapter
 from utils import mkdir_recursive
 from vmn import *
 
@@ -145,6 +146,7 @@ class CreateElectionTask(TaskHandler):
         that this task failed
         '''
         session = requests.sessions.Session()
+        session.mount('http://', RejectAdapter())
         input_data = self.task.get_data()['input_data']
         election_id = input_data['election_id']
         election = db.session.query(Election)\
@@ -162,8 +164,12 @@ class CreateElectionTask(TaskHandler):
                 "message": "election creation failed for some reason"
             }
         }
+        ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+        ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+        ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+        print("\nFF callback_url1 " + callback_url)
         r = session.request('post', callback_url, data=dumps(fail_data),
-                            verify=False)
+                            verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
         end_task()
 
 
@@ -281,6 +287,7 @@ def return_election(task):
         shutil.copyfile(protinfo_privpath, protinfo_pubpath)
 
     session = requests.sessions.Session()
+    session.mount('http://', RejectAdapter())
     callback_url = election.callback_url
     ret_data = {
         "status": "finished",
@@ -292,7 +299,11 @@ def return_election(task):
     }
     print "callback_url, ", callback_url
     print dumps(ret_data)
+    ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+    ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+    ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+    print("\nFF callback_url2 " + callback_url)
     r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
-                        verify=False)
+                        verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
     print r.text
     end_task()
