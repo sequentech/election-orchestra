@@ -89,7 +89,7 @@ def check_election_data(data, check_extra):
         raise TaskError(dict(reason='no authorities'))
 
     if not isinstance(questions, list) or len(questions) < 1 or\
-            len(questions) > app.config.get('MAX_NUM_QUESTIONS_PER_ELECTION', 10):
+            len(questions) > app.config.get('MAX_NUM_QUESTIONS_PER_ELECTION', 15):
         raise TaskError(dict(reason='Unsupported number of questions in the election'))
 
 
