@@ -1,4 +1,4 @@
-git+https://github.com/agoravoting/frestq.git@next
+git+https://github.com/agoravoting/frestq.git@go-next
 git+https://github.com/agoravoting/requests.git@agora#egg=requests
 Flask==0.12.4
 Flask-SQLAlchemy==1.0
