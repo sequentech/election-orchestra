@@ -1,4 +1,4 @@
-git+https://github.com/agoravoting/frestq.git@go-next
+git+https://github.com/agoravoting/frestq.git@dep-updates
 git+https://github.com/agoravoting/requests.git@agora#egg=requests
 Flask==1.0.0
 Flask-SQLAlchemy==1.0
@@ -12,7 +12,7 @@ cryptography==2.4.2
 pyOpenSSL==18.0.0
 ipdb==0.8
 ipython==1.2.1
-itsdangerous==0.23
+itsdangerous==0.24
 prettytable==0.7.2
 psycopg2==2.5.2
 pycparser==2.10
