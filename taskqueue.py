@@ -156,7 +156,7 @@ def tally_task(data):
     for req in requirements:
         if req['name'] not in data or not isinstance(data[req['name']],
             req['isinstance']):
-            print req['name'], data.get(req['name'], None), type(data[req['name']])
+            print(req['name'], data.get(req['name'], None), type(data[req['name']]))
             print("invalid %s parameter" % req['name'])
             return False
 
