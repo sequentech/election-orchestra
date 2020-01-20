@@ -523,7 +523,7 @@ def verify_and_publish_tally(task):
         try:
             # output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
             output = v_verify(protinfo_path, proofs_path)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             output = e.output
         if "Verification completed SUCCESSFULLY after" not in output:
             raise TaskError(dict(reason="invalid tally proofs"))
