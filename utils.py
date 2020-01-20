@@ -34,7 +34,7 @@ def mkdir_recursive(path):
             p = p + l[i] + "/"
             i = i + 1
             if not os.path.exists(p):
-                os.mkdir(p, 0755)
+                os.mkdir(p, 0o755)
 
 def get_server_url():
     '''

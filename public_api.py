@@ -246,8 +246,8 @@ def receive_election():
     '''
     This is a test route to be able to test that callbacks are correctly sent
     '''
-    print "ATTENTION received election callback: "
-    print request.get_json(force=True, silent=True)
+    print("ATTENTION received election callback: ")
+    print(request.get_json(force=True, silent=True))
     return make_response("", 202)
 
 
@@ -256,6 +256,6 @@ def receive_tally():
     '''
     This is a test route to be able to test that callbacks are correctly sent
     '''
-    print "ATTENTION received tally callback: "
-    print request.get_json(force=True, silent=True)
+    print("ATTENTION received tally callback: ")
+    print(request.get_json(force=True, silent=True))
     return make_response("", 202)
