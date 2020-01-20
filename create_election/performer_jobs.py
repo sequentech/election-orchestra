@@ -52,14 +52,14 @@ def check_election_data(data, check_extra):
     '''
     requirements = [
         {'name': u'id', 'isinstance': int},
-        {'name': u'title', 'isinstance': basestring},
-        {'name': u'description', 'isinstance': basestring},
+        {'name': u'title', 'isinstance': str},
+        {'name': u'description', 'isinstance': str},
         {'name': u'authorities', 'isinstance': list},
     ]
 
     if check_extra:
         requirements += [
-            {'name': 'callback_url', 'isinstance': basestring},
+            {'name': 'callback_url', 'isinstance': str},
             {'name': u'questions', 'isinstance': list},
         ]
         questions = data.get('questions', None)
@@ -99,9 +99,9 @@ def check_election_data(data, check_extra):
             'exists' % data['id']))
 
     auth_reqs = [
-        {'name': 'name', 'isinstance': basestring},
-        {'name': 'orchestra_url', 'isinstance': basestring},
-        {'name': 'ssl_cert', 'isinstance': basestring},
+        {'name': 'name', 'isinstance': str},
+        {'name': 'orchestra_url', 'isinstance': str},
+        {'name': 'ssl_cert', 'isinstance': str},
     ]
 
     for adata in data['authorities']:
@@ -120,13 +120,13 @@ def check_election_data(data, check_extra):
         raise TaskError(dict(reason="invalid authorities parameters"))
 
     q_reqs = [
-        {'name': 'text', 'isinstance': basestring},
+        {'name': 'text', 'isinstance': str},
         {'name': 'id', 'isinstance': int},
     ]
 
     task_error = TaskError(dict(reason="invalid question/answers"))
     questions = data['questions']
-    if isinstance(questions, basestring):
+    if isinstance(questions, str):
         questions = json.loads(questions)
 
     for question in questions:
@@ -164,7 +164,7 @@ def generate_private_info(task):
     for session in input_data['sessions']:
         if not isinstance(session, dict) or 'id' not in session or\
                 'stub' not in session or\
-                not isinstance(session['stub'], basestring) or\
+                not isinstance(session['stub'], str) or\
                 not re.match("^[a-zA-Z0-9_-]+$", session['id']):
             raise TaskError(dict(reason="Invalid session data provided"))
 

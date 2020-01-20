@@ -88,9 +88,9 @@ def review_tally(task):
     # check input data
     requirements = [
         {'name': u'election_id', 'isinstance': int},
-        {'name': u'callback_url', 'isinstance': basestring},
-        {'name': u'votes_url', 'isinstance': basestring},
-        {'name': u'votes_hash', 'isinstance': basestring},
+        {'name': u'callback_url', 'isinstance': str},
+        {'name': u'votes_url', 'isinstance': str},
+        {'name': u'votes_hash', 'isinstance': str},
     ]
 
     for req in requirements:

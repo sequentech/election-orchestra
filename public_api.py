@@ -175,7 +175,7 @@ def post_election():
     '''
 
     data = request.get_json(force=True, silent=True)
-    d = base64.b64encode(pickle.dumps(data))
+    d = base64.b64encode(pickle.dumps(data)).decode('utf-8')
     queueid = queue_task(task='election', data=d)
 
     return make_response(dumps(dict(queue_id=queueid)), 202)
@@ -237,7 +237,7 @@ def post_tally():
 
     # first of all, parse input data
     data = request.get_json(force=True, silent=True)
-    d = base64.b64encode(pickle.dumps(data))
+    d = base64.b64encode(pickle.dumps(data)).decode('utf-8')
     queueid = queue_task(task='tally', data=d)
     return make_response(dumps(dict(queue_id=queueid)), 202)
 
