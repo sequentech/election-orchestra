@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -139,9 +139,15 @@ class TallyElectionTask(TaskHandler):
         ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
         ssl_key_path = app.config.get('SSL_KEY_PATH', '')
         print("\nFF callback_url4 " + callback_url)
-        r = session.request('post', callback_url, data=dumps(fail_data), headers={'content-type': 'application/json'},
-                            verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
-        print r.text
+        r = session.request(
+            'post', 
+            callback_url, 
+            data=dumps(fail_data), 
+            headers={'content-type': 'application/json'},
+            verify=ssl_calist_path, 
+            cert=(ssl_cert_path, ssl_key_path)
+        )
+        print(r.text)
         end_task()
 
 
@@ -156,7 +162,11 @@ def return_election(task):
     tally_url = pub_data_url + '/' + str(election_id) + '/tally.tar.gz'
 
     pub_data_path = app.config.get('PUBLIC_DATA_PATH', '')
-    tally_hash_path = os.path.join(pub_data_path, str(election_id), 'tally.tar.gz.sha256')
+    tally_hash_path = os.path.join(
+        pub_data_path, 
+        str(election_id), 
+        'tally.tar.gz.sha256'
+    )
 
     f = open(tally_hash_path, 'r')
     tally_hash = f.read()
@@ -179,7 +189,13 @@ def return_election(task):
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
     print("\nFF callback_url5 " + callback_url)
-    r = session.request('post', callback_url, data=dumps(ret_data), headers={'content-type': 'application/json'},
-                        verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
-    print r.text
+    r = session.request(
+        'post', 
+        callback_url, 
+        data=dumps(ret_data), 
+        headers={'content-type': 'application/json'},
+        verify=ssl_calist_path, 
+        cert=(ssl_cert_path, ssl_key_path)
+    )
+    print(r.text)
     end_task()

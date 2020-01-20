@@ -1,5 +1,5 @@
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -27,7 +27,7 @@ def safe_dequeue():
     try:
         dequeue_task()
         return True
-    except Exception, e:
+    except Exception as e:
         return False
 
 def start_queue(queue_continue=False):
@@ -49,7 +49,10 @@ def start_queue(queue_continue=False):
 def dequeue_task():
     doing = db.session.query(QueryQueue).filter(QueryQueue.doing == True)
     if not doing.count():
-        todo = db.session.query(QueryQueue).with_for_update(nowait=True, of=QueryQueue).order_by(QueryQueue.id).first()
+        todo = db.session.query(QueryQueue)\
+            .with_for_update(nowait=True, of=QueryQueue)\
+            .order_by(QueryQueue.id)\
+            .first()
         todo.doing = True
         db.session.commit()
 
@@ -80,7 +83,10 @@ def apply_task(task, data):
 
 
 def end_task():
-    doing = db.session.query(QueryQueue).with_for_update(nowait=True).filter(QueryQueue.doing == True).one()
+    doing = db.session.query(QueryQueue)\
+        .with_for_update(nowait=True)\
+        .filter(QueryQueue.doing == True)\
+        .one()
     db.session.delete(doing)
     db.session.commit()
     safe_dequeue()
@@ -90,12 +96,12 @@ def end_task():
 
 def election_task(data):
     if not data:
-        print ("invalid json")
+        print("invalid json")
         return False
 
     try:
         check_election_data(data, True)
-    except Exception, e:
+    except Exception as e:
         print("ERROR", e)
         return False
 

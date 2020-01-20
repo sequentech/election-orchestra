@@ -1,7 +1,7 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
