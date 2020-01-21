@@ -281,7 +281,10 @@ class Process(object):
         """Read data written by the process to its standard output.
         """
         self.__lock.acquire()
-        outdata = "".join(self.__collected_outdata)
+        outdata = "".join([
+            data.decode('utf-8')
+                for data in self.__collected_outdata
+        ])
         del self.__collected_outdata[:]
         self.__lock.release()
         return outdata
