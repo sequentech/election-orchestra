@@ -64,7 +64,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
         # check to see if process has ended
         ret = p.wait(os.WNOHANG)
         # print any new output
-        o = p.read()
+        o = p.read().decode('utf-8')
         if len(o) > 0:
             print("output = %s" % o)
 

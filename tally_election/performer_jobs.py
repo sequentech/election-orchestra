@@ -188,7 +188,7 @@ def review_tally(task):
 
     # write ciphertexts to disk
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
-    ciphertexts_file = open(ciphertexts_path, 'w')
+    ciphertexts_file = open(ciphertexts_path, 'wb')
     for chunk in r.iter_content(10*1024):
         ciphertexts_file.write(chunk)
     ciphertexts_file.close()
@@ -525,7 +525,7 @@ def verify_and_publish_tally(task):
             output = v_verify(protinfo_path, proofs_path)
         except subprocess.CalledProcessError as e:
             output = e.output
-        if "Verification completed SUCCESSFULLY after" not in output:
+        if "Verification completed SUCCESSFULLY after" not in output.decode('utf-8'):
             raise TaskError(dict(reason="invalid tally proofs"))
 
     # get number of invalid votes that were detected before decryption

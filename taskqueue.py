@@ -70,7 +70,7 @@ def queue_task(task='election', data=None):
 
 
 def apply_task(task, data):
-    d = pickle.loads(base64.b64decode(data))
+    d = pickle.loads(base64.b64decode(data.encode('utf-8')))
     if task == 'election':
         r = election_task(d)
         if not r:

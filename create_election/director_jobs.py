@@ -297,19 +297,24 @@ def return_election(task):
         },
         "session_data": session_data
     }
-    print("callback_url, " + callback_url)
+    print("callback_url, " + callback_url + ", data = ")
     print(dumps(ret_data))
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
     ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-    print("\nFF callback_url2 " + callback_url)
-    r = session.request(
-        'post', 
-        callback_url, 
-        data=dumps(ret_data), 
-        headers={'content-type': 'application/json'},
-        verify=ssl_calist_path, 
-        cert=(ssl_cert_path, ssl_key_path)
-    )
+    try: 
+        r = session.request(
+            'post', 
+            callback_url, 
+            data=dumps(ret_data), 
+            headers={'content-type': 'application/json'},
+            verify=ssl_calist_path, 
+            cert=(ssl_cert_path, ssl_key_path)
+        )
+    except Exception as e:
+        print("exception posting callback = ")
+        print(e)
+        raise e
+    print("received text = ")
     print(r.text)
     end_task()
