@@ -16,6 +16,9 @@
 # debug, set to false on production deployment
 DEBUG = True
 
+# see https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications/33790196#33790196
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 ROOT_URL = 'https://127.0.0.1:5000/api/queues'
 
 # URL to our HTTP server
