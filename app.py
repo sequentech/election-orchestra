@@ -21,7 +21,7 @@ import os
 import sys
 
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 # Note: we need to import app before decorators or it won't work
 from frestq.app import app
