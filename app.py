@@ -34,6 +34,9 @@ logging.basicConfig(level=logging.DEBUG)
 # debug, set to false on production deployment
 DEBUG = True
 
+# see https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications/33790196#33790196
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 # URL to our HTTP server
 VFORK_SERVER_URL = 'http://127.0.0.1'
 
