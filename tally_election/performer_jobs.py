@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -88,15 +88,15 @@ def review_tally(task):
     # check input data
     requirements = [
         {'name': u'election_id', 'isinstance': int},
-        {'name': u'callback_url', 'isinstance': basestring},
-        {'name': u'votes_url', 'isinstance': basestring},
-        {'name': u'votes_hash', 'isinstance': basestring},
+        {'name': u'callback_url', 'isinstance': str},
+        {'name': u'votes_url', 'isinstance': str},
+        {'name': u'votes_hash', 'isinstance': str},
     ]
 
     for req in requirements:
         if req['name'] not in data or not isinstance(data[req['name']],
                 req['isinstance']):
-            print req['name'], data.get(req['name'], None), type(data[req['name']])
+            print(req['name'] + data.get(req['name'], None) + type(data[req['name']]))
             raise TaskError(dict(reason="invalid %s parameter" % req['name']))
 
 
@@ -131,7 +131,9 @@ def review_tally(task):
     allow_disjoint_multiple_tallies = os.path.join(election_privpath, 'allow_disjoint_multiple_tallies')
 
     if not os.path.exists(allow_disjoint_multiple_tallies) and os.path.exists(tally_path):
-        raise TaskError(dict(reason="election already tallied and multiple tallies not allowed"))
+        raise TaskError(dict(
+            reason="election already tallied and multiple tallies not allowed"
+        ))
 
     # TODO: check that this tally doesn't contain votes from any previous tally
 
@@ -174,14 +176,19 @@ def review_tally(task):
     ssl_key_path = app.config.get('SSL_KEY_PATH', '')
     ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
     print("\nFF callback_url3 " + callback_url)
-    r = session.request('get', data['votes_url'], cert=(ssl_cert_path, ssl_key_path),
-                     verify=ssl_calist_path, stream=True)
+    r = session.request(
+        'get', 
+        data['votes_url'], 
+        cert=(ssl_cert_path, ssl_key_path),
+        verify=ssl_calist_path, 
+        stream=True
+    )
     if r.status_code != 200:
         raise TaskError(dict(reason="error downloading the votes"))
 
     # write ciphertexts to disk
     ciphertexts_path = os.path.join(election_privpath, 'ciphertexts_json')
-    ciphertexts_file = open(ciphertexts_path, 'w')
+    ciphertexts_file = open(ciphertexts_path, 'wb')
     for chunk in r.iter_content(10*1024):
         ciphertexts_file.write(chunk)
     ciphertexts_file.close()
@@ -225,7 +232,12 @@ def review_tally(task):
         query = session.ballots.filter(Ballot.ballot_hash.in_(ballot_hashes))
         if query.count() > 0:
             hashes = json.dumps([ballot.ballot_hash for ballot in query])
-            raise TaskError(dict(reason="error, some ballots already tallied election_id = %s, session_id = %s, duplicated_ballot_hashes = %s" % (str(election_id), session.id, hashes)))
+            raise TaskError(dict(
+                reason=("error, some ballots already tallied election_id = %s" +
+                ", session_id = %s, duplicated_ballot_hashes = %s") % (
+                    str(election_id), session.id, hashes
+                )
+            ))
 
     try:
         invotes_file = open(ciphertexts_path, 'r')
@@ -297,11 +309,14 @@ def review_tally(task):
         # request user to decide
         label = "approve_election_tally"
         info_text = {
-          'Title': election.title,
-          'Description': election.description,
-          'Voting period': "%s - %s" % (str_date(election.start_date), str_date(election.end_date)),
-          'Question data': loads(election.questions),
-          'Authorities': [auth.to_dict() for auth in election.authorities]
+            'Title': election.title,
+            'Description': election.description,
+            'Voting period': "%s - %s" % (
+                str_date(election.start_date), 
+                str_date(election.end_date)
+            ),
+            'Question data': loads(election.questions),
+            'Authorities': [auth.to_dict() for auth in election.authorities]
         }
         approve_task = ExternalTask(label=label,
             data=info_text)
@@ -362,7 +377,8 @@ class PerformTallyTask(TaskHandler):
                 found_director = True
         if not found_director:
             raise TaskError(dict(
-                reason="perform tally task sent by an invalid authority"))
+                reason="perform tally task sent by an invalid authority"
+            ))
 
         privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
         election_privpath = os.path.join(privdata_path, str(election_id))
@@ -507,9 +523,9 @@ def verify_and_publish_tally(task):
         try:
             # output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
             output = v_verify(protinfo_path, proofs_path)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             output = e.output
-        if "Verification completed SUCCESSFULLY after" not in output:
+        if "Verification completed SUCCESSFULLY after" not in output.decode('utf-8'):
             raise TaskError(dict(reason="invalid tally proofs"))
 
     # get number of invalid votes that were detected before decryption

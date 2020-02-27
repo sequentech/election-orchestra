@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -52,14 +52,14 @@ def check_election_data(data, check_extra):
     '''
     requirements = [
         {'name': u'id', 'isinstance': int},
-        {'name': u'title', 'isinstance': basestring},
-        {'name': u'description', 'isinstance': basestring},
+        {'name': u'title', 'isinstance': str},
+        {'name': u'description', 'isinstance': str},
         {'name': u'authorities', 'isinstance': list},
     ]
 
     if check_extra:
         requirements += [
-            {'name': 'callback_url', 'isinstance': basestring},
+            {'name': 'callback_url', 'isinstance': str},
             {'name': u'questions', 'isinstance': list},
         ]
         questions = data.get('questions', None)
@@ -99,9 +99,9 @@ def check_election_data(data, check_extra):
             'exists' % data['id']))
 
     auth_reqs = [
-        {'name': 'name', 'isinstance': basestring},
-        {'name': 'orchestra_url', 'isinstance': basestring},
-        {'name': 'ssl_cert', 'isinstance': basestring},
+        {'name': 'name', 'isinstance': str},
+        {'name': 'orchestra_url', 'isinstance': str},
+        {'name': 'ssl_cert', 'isinstance': str},
     ]
 
     for adata in data['authorities']:
@@ -120,13 +120,13 @@ def check_election_data(data, check_extra):
         raise TaskError(dict(reason="invalid authorities parameters"))
 
     q_reqs = [
-        {'name': 'text', 'isinstance': basestring},
+        {'name': 'text', 'isinstance': str},
         {'name': 'id', 'isinstance': int},
     ]
 
     task_error = TaskError(dict(reason="invalid question/answers"))
     questions = data['questions']
-    if isinstance(questions, basestring):
+    if isinstance(questions, str):
         questions = json.loads(questions)
 
     for question in questions:
@@ -164,7 +164,7 @@ def generate_private_info(task):
     for session in input_data['sessions']:
         if not isinstance(session, dict) or 'id' not in session or\
                 'stub' not in session or\
-                not isinstance(session['stub'], basestring) or\
+                not isinstance(session['stub'], str) or\
                 not re.match("^[a-zA-Z0-9_-]+$", session['id']):
             raise TaskError(dict(reason="Invalid session data provided"))
 
@@ -175,7 +175,9 @@ def generate_private_info(task):
         if auth_data['orchestra_url'] == app.config.get('ROOT_URL', ''):
             auth_name = auth_data['name']
     if not auth_name:
-        raise TaskError(dict(reason="trying to process what SEEMS to be an external election"))
+        raise TaskError(dict(
+            reason="trying to process what SEEMS to be an external election"
+        ))
 
     # localProtInfo.xml should not exist for any of the sessions, as our task is
     # precisely to create it. note that we only check that localProtInfo.xml
@@ -185,13 +187,17 @@ def generate_private_info(task):
         session_privpath = os.path.join(election_privpath, session['id'])
         protinfo_path = os.path.join(session_privpath, 'localProtInfo.xml')
         if os.path.exists(protinfo_path):
-            raise TaskError(dict(reason="session_id %s already created" % session['id']))
+            raise TaskError(dict(
+                reason="session_id %s already created" % session['id']
+            ))
 
     # 2. create base local data from received input in case it's needed:
     # create election models, dirs and stubs if we are not the director
     if certs_differ(task.get_data()['sender_ssl_cert'], app.config.get('SSL_CERT_STRING', '')):
         if os.path.exists(election_privpath):
-            raise TaskError(dict(reason="Already existing election id %d" % input_data['id']))
+            raise TaskError(dict(
+                reason="Already existing election id %d" % input_data['id']
+            ))
         election = Election(
             id = input_data['id'],
             title = input_data['title'],
@@ -251,21 +257,24 @@ def generate_private_info(task):
 
         label = "approve_election"
         info_text = {
-'Title': election.title,
-'Description': election.description,
-'Voting period': "%s - %s" % (str_date(election.start_date), str_date(election.end_date)),
-'Question data': loads(election.questions),
-'Authorities': [auth.to_dict() for auth in election.authorities]
-	} 
-        approve_task = ExternalTask(label=label,
-            data=info_text)
+            'Title': election.title,
+            'Description': election.description,
+            'Voting period': "%s - %s" % (str_date(election.start_date), str_date(election.end_date)),
+            'Question data': loads(election.questions),
+            'Authorities': [auth.to_dict() for auth in election.authorities]
+	    } 
+        approve_task = ExternalTask(
+            label=label,
+            data=info_text
+        )
         task.add(approve_task)
 
     vfork_task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
         action="generate_private_info_vfork",
         queue="orchestra_performer",
-        data=dict())
+        data=dict()
+    )
     task.add(vfork_task)
 
 @decorators.task(action="generate_private_info_vfork", queue="orchestra_performer")
@@ -336,7 +345,9 @@ def generate_public_key(task):
 
     # some sanity checks, as this is not a local task
     if not os.path.exists(session_privpath):
-        raise TaskError(dict(reason="invalid session_id / election_id: " + session_privpath))
+        raise TaskError(dict(
+            reason="invalid session_id / election_id: " + session_privpath
+        ))
     if os.path.exists(os.path.join(session_privpath, 'publicKey_raw')) or\
             os.path.exists(os.path.join(session_privpath, 'publicKey_json')):
         raise TaskError(dict(reason="pubkey already created"))

@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -33,14 +33,15 @@ def rm_if_exists(path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "usage: %s <path>\n"\
-            "Where path is a directory containing the public election\n" % sys.argv[0]
+        print("usage: %s <path>\n"\
+            "Where path is a directory containing the public "\
+            "election\n" % sys.argv[0])
         exit(1)
 
     path = sys.argv[1]
 
     if not os.path.exists(sys.argv[1]):
-        print "path = %s\n does not exist" % sys.argv[1]
+        print()"path = %s\n does not exist" % sys.argv[1])
 
     # go across each subdir, which we assume represents a session-id, and create
     # demo encrypted texts
@@ -89,11 +90,11 @@ if __name__ == "__main__":
     sha256_hash = sha256.hash_file(votes_path)
 
     # print results
-    print json.dumps({
+    print(json.dumps({
         "election_id": os.path.basename(path),
         "callback_url": "%s/public_api/receive_tally" % BASE_URL,
         "extra": [],
         "votes_url": votes_url,
         "votes_hash": "ni:///sha-256;%s" % sha256_hash
-    }, indent=4)
-    print "\n"
+    }, indent=4))
+    print()"\n")

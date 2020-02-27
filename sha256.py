@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -29,8 +29,8 @@ def hash_data(data):
     Return the hexdigest of the data
     '''
     hash = hashlib.sha256()
-    hash.update(data)
-    return urlsafe_b64encode(hash.digest())
+    hash.update(data.encode('utf-8'))
+    return urlsafe_b64encode(hash.digest()).decode('utf-8')
 
 def hash_file(file_path):
     '''
@@ -41,11 +41,11 @@ def hash_file(file_path):
     openssl sha256 -binary <file_path> | openssl base64
     '''
     hash = hashlib.sha256()
-    f = open(file_path, 'r')
+    f = open(file_path, 'rb')
     for chunk in iter(partial(f.read, BUF_SIZE), b''):
         hash.update(chunk)
     f.close()
-    return urlsafe_b64encode(hash.digest())
+    return urlsafe_b64encode(hash.digest()).decode('utf-8')
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:

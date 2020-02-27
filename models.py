@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -19,7 +19,7 @@ import json
 from datetime import datetime
 
 from flask import Flask, jsonify
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
 from frestq.app import db
@@ -56,7 +56,7 @@ class Election(db.Model):
     callback_url = db.Column(db.Unicode(1024))
 
     def __init__(self, **kwargs):
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def __repr__(self):
@@ -101,7 +101,7 @@ class Session(db.Model):
     public_key = db.Column(db.UnicodeText)
 
     def __init__(self, **kwargs):
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def __repr__(self):
@@ -143,7 +143,7 @@ class Authority(db.Model):
     last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, **kwargs):
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def __repr__(self):
@@ -171,7 +171,7 @@ class Ballot(db.Model):
         backref=db.backref('ballots', lazy='dynamic'))
 
     def __init__(self, **kwargs):
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     def __repr__(self):

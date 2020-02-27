@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,7 @@ import os
 import sys
 
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 # Note: we need to import app before decorators or it won't work
 from frestq.app import app
@@ -33,6 +33,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 # debug, set to false on production deployment
 DEBUG = True
+
+# see https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications/33790196#33790196
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # URL to our HTTP server
 VFORK_SERVER_URL = 'http://127.0.0.1'

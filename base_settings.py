@@ -1,5 +1,5 @@
 # This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +15,9 @@
 
 # debug, set to false on production deployment
 DEBUG = True
+
+# see https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications/33790196#33790196
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 ROOT_URL = 'https://127.0.0.1:5000/api/queues'
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of election-orchestra.
-# Copyright (C) 2014-2016  Agora Voting SL <agora@agoravoting.com>
+# Copyright (C) 2013-2020  Agora Voting SL <contact@nvotes.com>
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -48,7 +48,7 @@ def error(status, message=""):
 def dequeue():
     try:
         dequeue_task()
-    except Exception, e:
+    except Exception as e:
         return make_response(dumps(dict(status=e.message)), 202)
 
     return make_response(dumps(dict(status="ok")), 202)
@@ -175,7 +175,7 @@ def post_election():
     '''
 
     data = request.get_json(force=True, silent=True)
-    d = base64.b64encode(pickle.dumps(data))
+    d = base64.b64encode(pickle.dumps(data)).decode('utf-8')
     queueid = queue_task(task='election', data=d)
 
     return make_response(dumps(dict(queue_id=queueid)), 202)
@@ -237,7 +237,7 @@ def post_tally():
 
     # first of all, parse input data
     data = request.get_json(force=True, silent=True)
-    d = base64.b64encode(pickle.dumps(data))
+    d = base64.b64encode(pickle.dumps(data)).decode('utf-8')
     queueid = queue_task(task='tally', data=d)
     return make_response(dumps(dict(queue_id=queueid)), 202)
 
@@ -246,8 +246,8 @@ def receive_election():
     '''
     This is a test route to be able to test that callbacks are correctly sent
     '''
-    print "ATTENTION received election callback: "
-    print request.get_json(force=True, silent=True)
+    print("ATTENTION received election callback: ")
+    print(request.get_json(force=True, silent=True))
     return make_response("", 202)
 
 
@@ -256,6 +256,6 @@ def receive_tally():
     '''
     This is a test route to be able to test that callbacks are correctly sent
     '''
-    print "ATTENTION received tally callback: "
-    print request.get_json(force=True, silent=True)
+    print("ATTENTION received tally callback: ")
+    print(request.get_json(force=True, silent=True))
     return make_response("", 202)
