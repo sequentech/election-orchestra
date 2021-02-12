@@ -57,7 +57,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
     '''
     print("call_cmd: calling " + " ".join(cmd))
     p = Process(cmd, cwd=cwd, stderr=subprocess.STDOUT)
-    launch_time = time.clock()
+    launch_time = time.process_time()
     output = ""
 
     while True:
@@ -78,7 +78,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
                 assert check_ret == ret
             return ret, output
 
-        if timeout > 0 and time.clock() - launch_time > timeout:
+        if timeout > 0 and time.process_time() - launch_time > timeout:
             p.kill(signal.SIGKILL)
             if check_ret is not None:
                 assert check_ret == -1
