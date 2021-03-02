@@ -145,32 +145,34 @@ class CreateElectionTask(TaskHandler):
         When an error is propagated up to here, is time to return to the sender
         that this task failed
         '''
-        session = requests.sessions.Session()
-        session.mount('http://', RejectAdapter())
-        input_data = self.task.get_data()['input_data']
-        election_id = input_data['election_id']
-        election = db.session.query(Election)\
-            .filter(Election.session_id == election_id).first()
+        try: 
+            session = requests.sessions.Session()
+            session.mount('http://', RejectAdapter())
+            input_data = self.task.get_data()['input_data']
+            election_id = input_data['election_id']
+            election = db.session.query(Election)\
+                .filter(Election.session_id == election_id).first()
 
-        session = requests.sessions.Session()
-        callback_url = election.callback_url
-        fail_data = {
-            "status": "error",
-            "reference": {
-                "election_id": election_id,
-                "action": "POST /election"
-            },
-            "data": {
-                "message": "election creation failed for some reason"
+            session = requests.sessions.Session()
+            callback_url = election.callback_url
+            fail_data = {
+                "status": "error",
+                "reference": {
+                    "election_id": election_id,
+                    "action": "POST /election"
+                },
+                "data": {
+                    "message": "election creation failed for some reason"
+                }
             }
-        }
-        ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
-        ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
-        ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-        print("\nFF callback_url1 " + callback_url)
-        r = session.request('post', callback_url, data=dumps(fail_data),
-                            verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
-        end_task()
+            ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+            ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+            ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+            print("\ncallback_url " + callback_url)
+            r = session.request('post', callback_url, data=dumps(fail_data),
+                                verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
+        finally:
+            end_task()
 
 
 @decorators.task(action="merge_protinfo", queue="orchestra_director")

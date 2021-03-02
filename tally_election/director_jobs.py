@@ -116,39 +116,41 @@ class TallyElectionTask(TaskHandler):
         When an error is propagated up to here, is time to return to the sender
         that this task failed
         '''
-        session = requests.sessions.Session()
-        session.mount('http://', RejectAdapter())
-        input_data = self.task.get_data()['input_data']
-        election_id = input_data['election_id']
-        callback_url = input_data['callback_url']
-        election = db.session.query(Election)\
-            .filter(Election.id == election_id).first()
+        try:
+            session = requests.sessions.Session()
+            session.mount('http://', RejectAdapter())
+            input_data = self.task.get_data()['input_data']
+            election_id = input_data['election_id']
+            callback_url = input_data['callback_url']
+            election = db.session.query(Election)\
+                .filter(Election.id == election_id).first()
 
-        session = requests.sessions.Session()
-        fail_data = {
-            "status": "error",
-            "reference": {
-                "election_id": election_id,
-                "action": "POST /tally"
-            },
-            "data": {
-                "message": "election tally failed for some reason"
+            session = requests.sessions.Session()
+            fail_data = {
+                "status": "error",
+                "reference": {
+                    "election_id": election_id,
+                    "action": "POST /tally"
+                },
+                "data": {
+                    "message": "election tally failed for some reason"
+                }
             }
-        }
-        ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
-        ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
-        ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-        print("\nFF callback_url4 " + callback_url)
-        r = session.request(
-            'post', 
-            callback_url, 
-            data=dumps(fail_data), 
-            headers={'content-type': 'application/json'},
-            verify=ssl_calist_path, 
-            cert=(ssl_cert_path, ssl_key_path)
-        )
-        print(r.text)
-        end_task()
+            ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
+            ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
+            ssl_key_path = app.config.get('SSL_KEY_PATH', '')
+            print("\nFF callback_url4 " + callback_url)
+            r = session.request(
+                'post', 
+                callback_url, 
+                data=dumps(fail_data), 
+                headers={'content-type': 'application/json'},
+                verify=ssl_calist_path, 
+                cert=(ssl_cert_path, ssl_key_path)
+            )
+            print(r.text)
+        finally:
+            end_task()
 
 
 @decorators.local_task
