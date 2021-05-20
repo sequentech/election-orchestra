@@ -131,7 +131,21 @@ def check_election_data(data, check_extra):
 
     for question in questions:
         answers = question['answers']
-        if not unique_by_keys(answers, ['id', 'text']):
+
+        non_write_ins_answers = [
+            answer
+            for answer in question['answers']
+            if len([
+                url 
+                for url in urls
+                if url['url'] != 'true' or url['title'] != 'isWriteIn'
+            ) == 0
+        ]
+        
+        if (
+            not unique_by_keys(non_write_ins_answers, ['text']) or
+            not unique_by_keys(answers, ['id'])
+        ):
             raise task_error
 
         if not check_pipe(q_reqs, answers):
