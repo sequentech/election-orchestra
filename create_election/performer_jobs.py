@@ -137,8 +137,8 @@ def check_election_data(data, check_extra):
             for answer in question['answers']
             if len([
                 url 
-                for url in urls
-                if url['url'] != 'true' or url['title'] != 'isWriteIn'
+                for url in answer['urls']
+                if url['url'] == 'true' and url['title'] == 'isWriteIn'
             ]) == 0
         ]
 
