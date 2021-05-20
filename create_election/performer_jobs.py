@@ -139,9 +139,9 @@ def check_election_data(data, check_extra):
                 url 
                 for url in urls
                 if url['url'] != 'true' or url['title'] != 'isWriteIn'
-            ) == 0
+            ]) == 0
         ]
-        
+
         if (
             not unique_by_keys(non_write_ins_answers, ['text']) or
             not unique_by_keys(answers, ['id'])
