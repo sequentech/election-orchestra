@@ -39,7 +39,7 @@ setup(
         'cryptography==3.3.2',
         'pyOpenSSL==18.0.0',
         'ipdb==0.13.9',
-        'ipython==7.9.0',
+        'ipython==7.17.0',
         'itsdangerous==0.24',
         'prettytable==0.7.2',
         'psycopg2-binary==2.8.6',
