@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: election-orchestra
+Upstream-Contact: Agora Voting SL <contact@nvotes.com>
+Source: http://github.com/agoravoting/election-orchestra
+
+# Sample paragraph, commented out:
+#
+# Files: src/*
+# Copyright: $YEAR $NAME <$CONTACT>
+# License: ...
