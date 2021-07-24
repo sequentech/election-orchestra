@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# This file is part of election-orchestra.
-# Copyright (C) 2013-2016  Agora Voting SL <agora@agoravoting.com>
+##
+## SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+##
+## SPDX-License-Identifier: AGPL-3.0-only
+##
 
 # election-orchestra is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
