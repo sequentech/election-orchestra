@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='election-orchestra',
-    version='20.01',
+    version='4.0.0-beta.1',
     author='nVotes Team',
     author_email='contact@nvotes.com',
     packages=['frestq'],
@@ -17,7 +17,7 @@ setup(
     description='election orchestrator',
     long_description=open('README.md').read(),
     install_requires=[
-        'frestq @ git+https://github.com/agoravoting/frestq.git@master',
+        'frestq @ git+https://github.com/agoravoting/frestq.git@4.0.0-beta.1
         'requests==2.22.0',
         'Flask==1.0.0',
         'Flask-SQLAlchemy==2.4.4',
