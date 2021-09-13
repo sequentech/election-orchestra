@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='election-orchestra',
-    version='20.01',
+    version='master',
     author='nVotes Team',
     author_email='contact@nvotes.com',
     packages=['frestq'],
