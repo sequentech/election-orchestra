@@ -29,4 +29,7 @@ resolutions:
   - message: "The project PIP::election-orchestra-requirements:.* has a dependency licensed under the ScanCode copyleft categorized license GPL-2.0-or-later."
     reason: "DYNAMIC_LINKAGE_EXCEPTION"
     comment: "This happens with uwsgi which is actually a GPL-2.0 with a linking exception, allowing not to have to relicense any linking code, such as our case."
-    
+
+  - message: "Resolving PIP dependencies for 'requirements.txt' failed with: IllegalArgumentException: No Python interpreter found for version 2"
+    reason: "CANT_FIX_EXCEPTION"
+    comment: "No need to use Python 2, we use Python 3."    
