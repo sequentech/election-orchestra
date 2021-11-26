@@ -10,7 +10,7 @@ resolutions:
     reason: "LICENSE_ACQUIRED_EXCEPTION"
     comment: "The project is open source so it's normal that it's set as such."
 
-  - message: "The project PIP::election-orchestra-requirements:.* has a dependency licensed under the ScanCode copyleft categorized license AGPL-3.0-only."
+  - message: "The project PIP::election-orchestra:master has the dependency PyPI::frestq:4.0.0 licensed under the ScanCode copyleft categorized license AGPL-3.0-only."
     reason: "LICENSE_ACQUIRED_EXCEPTION"
     comment: "This is related to frestq. Frestq is deemed to be compliant but has the license AGPL, because it's an open source project of ours. Not a problem."
 
@@ -26,10 +26,7 @@ resolutions:
     reason: "DYNAMIC_LINKAGE_EXCEPTION"
     comment: "This is actually a GPL-2.0 with a linking exception, allowing not to have to relicense any linking code, such as our case."
 
-  - message: "The project PIP::election-orchestra-requirements:.* has a dependency licensed under the ScanCode copyleft categorized license GPL-2.0-or-later."
+  - message: "The project PIP::election-orchestra:.* has the dependency PyPI::uwsgi:.* licensed under the ScanCode copyleft categorized license GPL-2.0-or-later."
     reason: "DYNAMIC_LINKAGE_EXCEPTION"
     comment: "This happens with uwsgi which is actually a GPL-2.0 with a linking exception, allowing not to have to relicense any linking code, such as our case."
 
-  - message: "Resolving PIP dependencies for 'requirements.txt' failed with: IllegalArgumentException: No Python interpreter found for version 2"
-    reason: "CANT_FIX_EXCEPTION"
-    comment: "No need to use Python 2, we use Python 3."    
