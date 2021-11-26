@@ -3,14 +3,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='election-orchestra',
     version='master',
     author='nVotes Team',
     author_email='contact@nvotes.com',
-    packages=['frestq'],
+    packages=find_packages(),
     scripts=[],
     url='http://github.com/agoravoting/election-orchestra',
     license='AGPL-3.0',
