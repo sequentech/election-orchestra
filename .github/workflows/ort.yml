@@ -25,6 +25,8 @@ jobs:
           java-version: '11.0.1'
 
       - name: remove requirements as that triggers in ort python2
+        id: requirements
+        shell: bash
         run: |
           [ -f ${{ github.workspace }}/requirements.txt ] && rm ${{ github.workspace }}/requirements.txt
 
