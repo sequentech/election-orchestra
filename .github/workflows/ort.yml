@@ -28,7 +28,7 @@ jobs:
         id: requirements
         shell: bash
         run: |
-          [ -f ${{ github.workspace }}/requirements.txt ] && rm ${{ github.workspace }}/requirements.txt
+          rm ${{ github.workspace }}/requirements.txt || true
 
       - name: Analyze licensing
         id: ort-action
