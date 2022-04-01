@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 
 SPDX-License-Identifier: AGPL-3.0-only
 -->
@@ -7,7 +7,7 @@ Election Orchestra
 ==================
 
 This software orchestrates the authorities servers to create election
-public-keys and perform the tallying using vfork.
+public-keys and perform the tallying using mixnet.
 
 Public API (Director)
 ---------------------

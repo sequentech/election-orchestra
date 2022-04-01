@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -188,7 +188,7 @@ def review_tally(task):
     if not constant_time_compare(input_hash, hash_file(ciphertexts_path)):
         raise TaskError(dict(reason="invalid votes_hash"))
 
-    # transform input votes into something readable by vfork. Basically
+    # transform input votes into something readable by mixnet. Basically
     # we read each line of the votes file, which corresponds with a ballot,
     # and split each choice to each session
     # So basically each input line looks like:
@@ -197,7 +197,7 @@ def review_tally(task):
     # And we generate N ciphertexts_json files, each of which, for each of
     # those lines input lines, will contain a line with vote_for_session<i>.
     # NOTE: This is the inverse of what the demociphs.py script does
-    invotes_file = None
+    isequent_file = None
     outvotes_files = []
 
     # pubkeys needed to verify votes. we also save it to a file
@@ -230,7 +230,7 @@ def review_tally(task):
             ))
 
     try:
-        invotes_file = open(ciphertexts_path, 'r')
+        isequent_file = open(ciphertexts_path, 'r')
         for session in sessions:
             outvotes_path = os.path.join(election_privpath, session.id,
                 'ciphertexts_json')
@@ -238,7 +238,7 @@ def review_tally(task):
         print("\n------ Reading and verifying POK of plaintext for the votes..\n")
         lnum = 0
         hash_groups = [[] for _ in sessions]
-        for line in invotes_file:
+        for line in isequent_file:
             lnum += 1
             line_data = json.loads(line)
             assert len(line_data['choices']) == len(outvotes_files)
@@ -246,7 +246,7 @@ def review_tally(task):
             i = 0
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
-                # otherwise vfork won't read it well
+                # otherwise mixnet won't read it well
                 ballot_data = json.dumps(choice,
                     ensure_ascii=False, sort_keys=True, separators=(',', ':'))
                 hash_groups[i].append(hash_data(ballot_data))
@@ -276,8 +276,8 @@ def review_tally(task):
         with open(invalid_votes_path, 'w') as f:
           f.write("%d" % invalid_votes)
 
-        if invotes_file is not None:
-            invotes_file.close()
+        if isequent_file is not None:
+            isequent_file.close()
         for f in outvotes_files:
             f.close()
 
@@ -339,7 +339,7 @@ def check_tally_approval(task):
     open(approve_path, 'a').close()
 
 
-@decorators.task(action="perform_tally", queue="vfork_queue")
+@decorators.task(action="perform_tally", queue="mixnet_queue")
 class PerformTallyTask(TaskHandler):
     def execute(self):
         '''
@@ -400,7 +400,7 @@ class PerformTallyTask(TaskHandler):
             '''
             if 'Exception in thread "main"' in o:
                 p.kill(signal.SIGKILL)
-                raise TaskError(dict(reason='error executing vfork'))
+                raise TaskError(dict(reason='error executing mixnet'))
 
         v_mix(session_privpath, output_filter)
 
@@ -507,9 +507,9 @@ def verify_and_publish_tally(task):
         #          timeout=3600)
         v_convert_plaintexts_json(session_privpath)
 
-        # verify the proofs. sometimes vfork raises an exception at the end
+        # verify the proofs. sometimes mixnet raises an exception at the end
         # so we dismiss it if the verification is successful. TODO: fix that in
-        # vfork
+        # mixnet
         try:
             # output = subprocess.check_output(["vmnv", protinfo_path, proofs_path, "-v"])
             output = v_verify(protinfo_path, proofs_path)
