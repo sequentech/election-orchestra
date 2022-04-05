@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -32,7 +32,7 @@ ALLOW_ONLY_SSL_CONNECTIONS = True
 AUTOACCEPT_REQUESTS = True
 
 QUEUES_OPTIONS = {
-    'vfork_queue': {
+    'mixnet_queue': {
         'max_threads': 1,
     }
 }

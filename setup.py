@@ -1,5 +1,5 @@
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -8,16 +8,16 @@ from setuptools import setup, find_packages
 setup(
     name='election-orchestra',
     version='master',
-    author='nVotes Team',
-    author_email='contact@nvotes.com',
+    author='Sequent Team',
+    author_email='legal@sequentech.io',
     packages=find_packages(),
     scripts=[],
-    url='http://github.com/agoravoting/election-orchestra',
+    url='http://github.com/sequentech/election-orchestra',
     license='AGPL-3.0',
     description='election orchestrator',
     long_description=open('README.md').read(),
     install_requires=[
-        'frestq @ git+https://github.com/agoravoting/frestq.git@master',
+        'frestq @ git+https://github.com/sequentech/frestq.git@master',
         'requests==2.22.0',
         'Flask==1.0.0',
         'Flask-SQLAlchemy==2.4.4',

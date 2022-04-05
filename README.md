@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 
 SPDX-License-Identifier: AGPL-3.0-only
 -->
@@ -7,7 +7,7 @@ Election Orchestra
 ==================
 
 This software orchestrates the authorities servers to create election
-public-keys and perform the tallying using vfork.
+public-keys and perform the tallying using mixnet.
 
 Installation
 ============
@@ -15,7 +15,7 @@ Installation
 1. Download from the git repository if you haven't got a copy
 
 ```
-    $ git clone https://github.com/agoraciudadana/election-orchestra && cd election-orchestra
+    $ git clone https://github.com/sequentciudadana/election-orchestra && cd election-orchestra
 ```
 
 2. Install package and its dependencies
@@ -51,7 +51,7 @@ To generate a self-signed certificate you can do:
     $ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 1000 -nodes
 ```
 
-You can find an example nginx configuration in https://github.com/agoraciudadana/frestq/blob/master/examples/hellossl/nginx_hellossl.conf
+You can find an example nginx configuration in https://github.com/sequentciudadana/frestq/blob/master/examples/hellossl/nginx_hellossl.conf
 
 Tutorial
 ========
@@ -133,7 +133,7 @@ To see the status of a task:
     |- frestq.virtual_empty_task.internal.frestq - parallel (4dba0478, finished)
     |  |- generate_private_info.orchestra_performer - sequential (17c80822, finished)
     |  |  |- frestq.virtual_empty_task.internal.frestq - external (86ba85d2, finished, root)
-    |  |  |- generate_private_info_vfork.orchestra_performer - sequential (b782e6a9, finished)
+    |  |  |- generate_private_info_mixnet.orchestra_performer - sequential (b782e6a9, finished)
     |  |- generate_private_info.orchestra_performer - simple (f9395f0a, finished)
     |- merge_protinfo.orchestra_director - sequential (3afddaba, executing)
     |  |- frestq.virtual_empty_task.internal.frestq - synchronized (5825a61b, executing)
@@ -180,21 +180,21 @@ POST https://127.0.0.1:5000/public_api/election
 
 # License
 
-Copyright (C) 2015 Agora Voting SL and/or its subsidiary(-ies).
-Contact: legal@agoravoting.com
+Copyright (C) 2015 Sequent Tech Inc and/or its subsidiary(-ies).
+Contact: legal@sequentech.io
 
-This file is part of the election-orchestra module of the Agora Voting project.
+This file is part of the election-orchestra module of the Sequent Tech project.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 Commercial License Usage
-Licensees holding valid commercial Agora Voting project licenses may use this
+Licensees holding valid commercial Sequent Tech project licenses may use this
 file in accordance with the commercial license agreement provided with the
 Software or, alternatively, in accordance with the terms contained in
-a written agreement between you and Agora Voting SL. For licensing terms and
-conditions and further information contact us at legal@agoravoting.com .
+a written agreement between you and Sequent Tech Inc. For licensing terms and
+conditions and further information contact us at legal@sequentech.io .
 
 GNU Affero General Public License Usage
 Alternatively, this file may be used under the terms of the GNU Affero General

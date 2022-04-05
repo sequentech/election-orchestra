@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -75,7 +75,7 @@ class Election(db.Model):
 
 class Session(db.Model):
     '''
-    Refers vfork session, with its own public key and protinfo
+    Refers mixnet session, with its own public key and protinfo
     '''
     id = db.Column(db.Unicode(255), primary_key=True)
 

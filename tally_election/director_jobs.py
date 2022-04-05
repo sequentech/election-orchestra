@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -56,7 +56,7 @@ class TallyElectionTask(TaskHandler):
         self.task.add(parallel_task)
 
         # 2. once all the authorities have reviewed and accepted the tallies
-        # (one per question/session), launch vfork to perform it
+        # (one per question/session), launch mixnet to perform it
         seq_task = SequentialTask()
         self.task.add(seq_task)
         for session_id in session_ids:
@@ -66,7 +66,7 @@ class TallyElectionTask(TaskHandler):
                 auth_task = SimpleTask(
                     receiver_url=authority.orchestra_url,
                     action="perform_tally",
-                    queue="vfork_queue",
+                    queue="mixnet_queue",
                     data={
                         'election_id': data['election_id'],
                         'session_id': session_id

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -225,7 +225,7 @@ def merge_protinfo_task(task):
             subtask = SimpleTask(
                 receiver_url=authority.orchestra_url,
                 action="generate_public_key",
-                queue="vfork_queue",
+                queue="mixnet_queue",
                 data=dict(
                     session_id=session_id,
                     election_id=election_id,

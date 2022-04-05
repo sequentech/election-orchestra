@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Agora Voting SL <contact@nvotes.com>
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -273,19 +273,19 @@ def generate_private_info(task):
         )
         task.add(approve_task)
 
-    vfork_task = SimpleTask(
+    mixnet_task = SimpleTask(
         receiver_url=app.config.get('ROOT_URL', ''),
-        action="generate_private_info_vfork",
+        action="generate_private_info_mixnet",
         queue="orchestra_performer",
         data=dict()
     )
-    task.add(vfork_task)
+    task.add(mixnet_task)
 
-@decorators.task(action="generate_private_info_vfork", queue="orchestra_performer")
+@decorators.task(action="generate_private_info_mixnet", queue="orchestra_performer")
 @decorators.local_task
-def generate_private_info_vfork(task):
+def generate_private_info_mixnet(task):
     '''
-    After the task has been approved, execute vfork to generate the
+    After the task has been approved, execute mixnet to generate the
     private info
     '''
     # first of all, check that parent task is approved, but we only check that
@@ -335,7 +335,7 @@ def generate_private_info_vfork(task):
     # set the output data of parent task, and update sender
     task.get_parent().set_output_data(protinfos)
 
-@decorators.task(action="generate_public_key", queue="vfork_queue")
+@decorators.task(action="generate_public_key", queue="mixnet_queue")
 def generate_public_key(task):
     '''
     Generates the local private info for a new election
@@ -371,7 +371,7 @@ def generate_public_key(task):
         if "Unable to download signature!" in o or\
                 "ERROR: Invalid socket address!" in o:
             p.kill(signal.SIGKILL)
-            raise TaskError(dict(reason='error executing vfork'))
+            raise TaskError(dict(reason='error executing mixnet'))
 
     #call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
     #         timeout=10*60, check_ret=0, output_filter=output_filter)
@@ -384,7 +384,7 @@ def generate_public_key(task):
         '''
         if "Failed to parse info files!" in o:
             p.kill(signal.SIGKILL)
-            raise TaskError(dict(reason='error executing vfork'))
+            raise TaskError(dict(reason='error executing mixnet'))
 
     # transform it into json format
     #call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
