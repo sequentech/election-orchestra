@@ -249,7 +249,8 @@ def receive_tally():
     print(request.get_json(force=True, silent=True))
     return make_response("", 202)
 
-@public_api.route('/download-private-share', methods=['POST'])
+@public_api.route('/download_private_share', methods=['POST'])
+def download_private_share():
     '''
     Download private share of the keys
     '''
