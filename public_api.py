@@ -248,3 +248,11 @@ def receive_tally():
     print("ATTENTION received tally callback: ")
     print(request.get_json(force=True, silent=True))
     return make_response("", 202)
+
+@public_api.route('/download-private-share', methods=['POST'])
+    '''
+    Download private share of the keys
+    '''
+    print("ATTENTION received download-private-share: ")
+    data = request.get_json(force=True, silent=True)
+    return make_response(dumps(data), 200)
