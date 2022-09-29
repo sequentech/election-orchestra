@@ -255,5 +255,38 @@ def download_private_share():
     Download private share of the keys
     '''
     print("ATTENTION received download-private-share: ")
+    import tempfile
+    from utils import parse_json_request
+    from models import Session
+    from frestq.app import db
+    import os
+    import shutil
+
     data = request.get_json(force=True, silent=True)
+    req = parse_json_request(request)
+    election_id = req.get('election_id', None)
+
+    if election_id is None:
+        make_response("election id missing", 400)
+
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+
+    session_ids = [s.id for s in db.session.query(Session).\
+            with_parent(election,"sessions").\
+            order_by(Session.question_number)]
+
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, str(election_id))
+    
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for session in session_ids:
+                session_privpath = os.path.join(election_private_path, session.id, 'privInfo.xml')
+                if not os.path.exists(session_privpath):
+                    return make_response(f'missing file {session_privpath}', 500)
+                os.mkdir(os.path.join(tmpdirname, session.id), 0o755)
+                copy_privpath = os.path.join(tmpdirname, session.id, 'privInfo.xml')
+                shutil.copyfile(session_privpath, copy_privpath)
+
     return make_response(dumps(data), 200)

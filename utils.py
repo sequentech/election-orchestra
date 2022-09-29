@@ -90,3 +90,9 @@ def constant_time_compare(val1, val2):
     for x, y in zip(val1, val2):
         result |= ord(x) ^ ord(y)
     return result == 0
+
+def parse_json_request(request):
+    '''
+    Returns the request body as a parsed json object
+    '''
+    return json.loads(request.body.decode('utf-8'))
