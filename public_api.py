@@ -287,17 +287,17 @@ def download_private_share():
 
             # hash session file
             session_privpath_hashfile = os.path.join(election_private_path, session_id, 'privInfo.xml.sha256')
-            session_privpath_hash = hash_file(session_privpath)
+            session_privpath_hash = hash_file(session_privpath, encoding = 'utf-8')
             if os.path.exists(session_privpath_hashfile):
                 # check the sha256 of the private key
-                with open("contents.txt", "r", encoding = 'utf-8') as hash_file:
-                    hash_text = hash_file.read()
+                with open(session_privpath_hashfile, "r", encoding = 'utf-8') as hashed_file:
+                    hash_text = hashed_file.read()
                     if hash_text != session_privpath_hash:
                         return make_response(f'hash for private key file {session_privpath} error: {hash_text} != {session_privpath_hash}', 500)
             else:
                 # write the sha256 of the private key
-                with open(session_privpath_hashfile, 'w', encoding = 'utf-8') as hash_file:
-                    hash_file.write(session_privpath_hash)
+                with open(session_privpath_hashfile, 'w', encoding = 'utf-8') as hashed_file:
+                    hashed_file.write(session_privpath_hash)
 
             os.mkdir(os.path.join(tmpdirname, session_id), 0o755)
             copy_privpath = os.path.join(tmpdirname, session_id, 'privInfo.xml')
