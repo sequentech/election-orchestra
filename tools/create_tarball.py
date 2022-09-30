@@ -222,3 +222,20 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
+
+# tarfile_path: ie /home/user/file.tar.gz
+def create_deterministic_tar_file(tarfile_path, folder_path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.dirname(tarfile_path))
+        import time
+        old_time = time.time
+        time.time = lambda: MAGIC_TIMESTAMP
+        tar = tarfile.open(os.path.basename(tarfile_path), 'w|gz')
+    finally:
+        time.time = old_time
+        os.chdir(cwd)
+    timestamp = MAGIC_TIMESTAMP
+
+    deterministic_tar_add(tar, folder_path, '', timestamp)
+    tar.close()
