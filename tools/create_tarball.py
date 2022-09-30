@@ -41,9 +41,12 @@ def hash_file(file_path, **kwargs):
     path.
     '''
     hash = hashlib.sha256()
-    f = open(file_path, 'r', **kwargs)
+    f = open(file_path, 'r')
     for chunk in f.read(BUF_SIZE):
-        hash.update(chunk)
+        final_chunk = chunk
+        if 'encoding' in kwargs:
+             final_chunk = chunk.encode(kwargs.get('encoding'))
+        hash.update(final_chunk)
     f.close()
     return hash.hexdigest()
 

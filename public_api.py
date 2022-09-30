@@ -307,7 +307,7 @@ def download_private_share():
         with tempfile.TemporaryDirectory() as tmp_tar_folder:
             tar_filename = "private_keys.tar.gz"
             tar_file_path = os.path.join(tmp_tar_folder, tar_filename)
-            create_deterministic_tar_file(tmp_tar_folder, tmpdirname)
+            create_deterministic_tar_file(tar_file_path, tmpdirname)
 
             response = send_file(tar_file_path, as_attachment=True, attachment_filename=tar_filename,
                          add_etags=False, mimetype="application/gzip")
