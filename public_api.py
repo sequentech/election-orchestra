@@ -256,7 +256,6 @@ def download_private_share():
     '''
     print("ATTENTION received download-private-share: ")
     import tempfile
-    from utils import parse_json_request
     from models import Session
     from frestq.app import db
     from flask import send_file
@@ -264,8 +263,7 @@ def download_private_share():
     import shutil
     from tools.create_tarball import hash_file, create_deterministic_tar_file
 
-    data = request.get_json(force=True, silent=True)
-    req = parse_json_request(request)
+    req = request.get_json(force=True, silent=True)
     election_id = req.get('election_id', None)
 
     if election_id is None:
@@ -282,13 +280,13 @@ def download_private_share():
     election_private_path = os.path.join(private_data_path, str(election_id))
 
     with tempfile.TemporaryDirectory() as tmpdirname:
-        for session in session_ids:
-            session_privpath = os.path.join(election_private_path, session.id, 'privInfo.xml')
+        for session_id in session_ids:
+            session_privpath = os.path.join(election_private_path, session_id, 'privInfo.xml')
             if not os.path.exists(session_privpath):
                 return make_response(f'missing file {session_privpath}', 500)
 
             # hash session file
-            session_privpath_hashfile = os.path.join(election_private_path, session.id, 'privInfo.xml.sha256')
+            session_privpath_hashfile = os.path.join(election_private_path, session_id, 'privInfo.xml.sha256')
             session_privpath_hash = hash_file(session_privpath)
             if os.path.exists(session_privpath_hashfile):
                 # check the sha256 of the private key
@@ -301,8 +299,8 @@ def download_private_share():
                 with open(session_privpath_hashfile, 'w', encoding = 'utf-8') as hash_file:
                     hash_file.write(session_privpath_hash)
 
-            os.mkdir(os.path.join(tmpdirname, session.id), 0o755)
-            copy_privpath = os.path.join(tmpdirname, session.id, 'privInfo.xml')
+            os.mkdir(os.path.join(tmpdirname, session_id), 0o755)
+            copy_privpath = os.path.join(tmpdirname, session_id, 'privInfo.xml')
             shutil.copyfile(session_privpath, copy_privpath)
         
         # create and return tar file
