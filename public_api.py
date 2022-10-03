@@ -255,66 +255,26 @@ def download_private_share():
     Download private share of the keys
     '''
     print("ATTENTION received download-private-share: ")
-    import tempfile
-    from models import Session
-    from frestq.app import db
-    from flask import send_file
-    import os
-    import shutil
-    from tools.create_tarball import hash_file, create_deterministic_tar_file
+    from keys_management import download_private_share
 
     req = request.get_json(force=True, silent=True)
     election_id = req.get('election_id', None)
 
     if election_id is None:
         make_response("election id missing", 400)
+    
+    result, code = download_private_share(election_id)
 
-    election = db.session.query(Election)\
-        .filter(Election.id == election_id).first()
+    if code != 200:
+        return make_response(result, code)
 
-    session_ids = [s.id for s in db.session.query(Session).\
-            with_parent(election,"sessions").\
-            order_by(Session.question_number)]
+    tar_file_path = result
+    response = send_file(tar_file_path, as_attachment=True, attachment_filename="private_keys.tar.gz",
+                    add_etags=False, mimetype="application/gzip")
 
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_private_path = os.path.join(private_data_path, str(election_id))
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        for session_id in session_ids:
-            session_privpath = os.path.join(election_private_path, session_id, 'privInfo.xml')
-            if not os.path.exists(session_privpath):
-                return make_response(f'missing file {session_privpath}', 500)
-
-            # hash session file
-            session_privpath_hashfile = os.path.join(election_private_path, session_id, 'privInfo.xml.sha256')
-            session_privpath_hash = hash_file(session_privpath, encoding = 'utf-8')
-            if os.path.exists(session_privpath_hashfile):
-                # check the sha256 of the private key
-                with open(session_privpath_hashfile, "r", encoding = 'utf-8') as hashed_file:
-                    hash_text = hashed_file.read()
-                    if hash_text != session_privpath_hash:
-                        return make_response(f'hash for private key file {session_privpath} error: {hash_text} != {session_privpath_hash}', 500)
-            else:
-                # write the sha256 of the private key
-                with open(session_privpath_hashfile, 'w', encoding = 'utf-8') as hashed_file:
-                    hashed_file.write(session_privpath_hash)
-
-            os.mkdir(os.path.join(tmpdirname, session_id), 0o755)
-            copy_privpath = os.path.join(tmpdirname, session_id, 'privInfo.xml')
-            shutil.copyfile(session_privpath, copy_privpath)
-        
-        # create and return tar file
-        with tempfile.TemporaryDirectory() as tmp_tar_folder:
-            tar_filename = "private_keys.tar.gz"
-            tar_file_path = os.path.join(tmp_tar_folder, tar_filename)
-            create_deterministic_tar_file(tar_file_path, tmpdirname)
-
-            response = send_file(tar_file_path, as_attachment=True, attachment_filename=tar_filename,
-                         add_etags=False, mimetype="application/gzip")
-            
-            response.headers.extend({
-                'Content-Length': os.path.getsize(tar_file_path),
-                'Cache-Control': 'no-cache'
-            })
+    response.headers.extend({
+        'Content-Length': os.path.getsize(tar_file_path),
+        'Cache-Control': 'no-cache'
+    })
 
     return response
