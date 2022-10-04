@@ -35,19 +35,20 @@ BUF_SIZE = 10*1024
 # deterministic tars
 MAGIC_TIMESTAMP = 1394060400
 
-def hash_file(file_path, **kwargs):
+def hash_file(file_path, mode = 'r', **kwargs):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file
     path.
     '''
     hash = hashlib.sha256()
-    f = open(file_path, 'r')
-    for chunk in f.read(BUF_SIZE):
-        final_chunk = chunk
-        if 'encoding' in kwargs:
-             final_chunk = chunk.encode(kwargs.get('encoding'))
-        hash.update(final_chunk)
-    f.close()
+    with open(file_path, mode) as f:
+        while True:
+            chunk = f.read(BUF_SIZE)
+            if not chunk:
+                break
+            if 'encoding' in kwargs:
+                chunk = chunk.encode(kwargs.get('encoding'))
+            hash.update(chunk)
     return hash.hexdigest()
 
 def verify_pok_plaintext(pk, proof, ciphertext):

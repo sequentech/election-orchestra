@@ -265,16 +265,4 @@ def download_private_share():
     
     result, code = download_private_share(election_id)
 
-    if code != 200:
-        return make_response(result, code)
-
-    tar_file_path = result
-    response = send_file(tar_file_path, as_attachment=True, attachment_filename="private_keys.tar.gz",
-                    add_etags=False, mimetype="application/gzip")
-
-    response.headers.extend({
-        'Content-Length': os.path.getsize(tar_file_path),
-        'Cache-Control': 'no-cache'
-    })
-
-    return response
+    return make_response(result, code)
