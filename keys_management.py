@@ -64,10 +64,6 @@ def download_private_share(election_id):
     '''
     Download private share of the keys
     '''
-
-    if election_id is None:
-        return ("election id missing", 400)
-
     election = get_election_by_id(election_id)
 
     session_ids = get_election_session_ids(election)
@@ -86,8 +82,41 @@ def download_private_share(election_id):
         else:
             # write the sha256 of the private key
             create_file_hash(session_privpath)
-    
-    # create tar file with private keys
-    tar_file_path = create_tar_for_private_keys(election_id, session_ids)
 
-    return (tar_file_path, 200)
+    # create tar file with private keys
+    tar_file_b64 = create_tar_for_private_keys(election_id, session_ids)
+
+    return (tar_file_b64, 200)
+
+def check_private_share(election_id, private_key_base64):
+    private_key_bytes = base64.b64decode(private_key_base64)
+
+    election = get_election_by_id(election_id)
+    session_ids = get_election_session_ids(election)
+
+    private_key_file_paths = [get_session_private_key_path(election_id, session_id) for session_id in session_ids]
+    # assert private key file  hashes
+    for session_privpath in private_key_file_paths:
+        if not os.path.exists(session_privpath):
+            return (f'missing file {session_privpath}', 500)
+
+        # hash session file
+        session_privpath_hashfile = get_file_hash_path(session_privpath)
+        if os.path.exists(session_privpath_hashfile):
+            if not check_file_hash(session_privpath):
+                    return (f'hash for private key file error', 500)
+        else:
+            # write the sha256 of the private key
+            create_file_hash(session_privpath)
+
+    with tempfile.TemporaryFile() as temp_pk:
+        temp_pk.write(private_key_bytes)
+        pk_hash = hash_file(temp_pk, mode = 'rb')
+    tar_file_b64 = create_tar_for_private_keys(election_id, session_ids)
+    tar_file_bytes = base64.b64decode(tar_file_b64)
+
+    with tempfile.TemporaryFile() as temp_tar:
+        temp_tar.write(tar_file_bytes)
+        tar_hash = hash_file(temp_tar, mode = 'rb')
+    
+    return (tar_hash == pk_hash, 200)

@@ -266,3 +266,24 @@ def download_private_share():
     result, code = download_private_share(election_id)
 
     return make_response(result, code)
+
+@public_api.route('/check_private_share', methods=['POST'])
+def check_private_share():
+    '''
+    Check private share of the keys
+    '''
+    print("ATTENTION received check-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+    private_key_base64 = req.get('private_key', None)
+
+    if election_id is None:
+        make_response("election id missing", 400)
+
+    if private_key_base64 is None:
+        make_response("private key missing", 400)
+    
+    result, code = check_private_share(election_id)
+
+    return make_response(result, code)
