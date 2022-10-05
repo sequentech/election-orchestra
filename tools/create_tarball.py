@@ -251,3 +251,7 @@ def create_deterministic_tar_file(tarfile_path, folder_path):
 
     deterministic_tar_add(tar, folder_path, '', timestamp)
     tar.close()
+
+def extract_tar_file(tar_file_path, target_extract_folder):
+    with tarfile.open(tar_file_path) as tar_file:
+        tar_file.extractall(target_extract_folder)

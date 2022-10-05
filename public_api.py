@@ -289,7 +289,7 @@ def check_private_share():
     return make_response(result, code)
 
 @public_api.route('/delete_private_share', methods=['DELETE'])
-def check_private_share():
+def delete_private_share():
     '''
     delete private share of the keys
     '''
@@ -306,5 +306,26 @@ def check_private_share():
         make_response("private key missing", 400)
     
     result, code = keys_management.delete_private_share(election_id, private_key_base64)
+
+    return make_response(result, code)
+
+@public_api.route('/restore_private_share', methods=['DELETE'])
+def restore_private_share():
+    '''
+    restore private share of the keys
+    '''
+    print("ATTENTION received restore-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+    private_key_base64 = req.get('private_key', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+
+    if not isinstance(private_key_base64, str):
+        make_response("private key missing", 400)
+    
+    result, code = keys_management.restore_private_share(election_id, private_key_base64)
 
     return make_response(result, code)

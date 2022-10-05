@@ -4,7 +4,7 @@ import tempfile
 from models import Session
 import os
 import shutil
-from tools.create_tarball import hash_file, hash_bytes, create_deterministic_tar_file
+from tools.create_tarball import hash_file, hash_bytes, create_deterministic_tar_file, extract_tar_file
 from flask import request, make_response
 import base64
 
@@ -17,9 +17,10 @@ def get_election_session_ids(election):
             with_parent(election,"sessions").\
             order_by(Session.question_number)]
 
+PRIVATE_DATA_PATH = app.config.get('PRIVATE_DATA_PATH', '')
+
 def get_session_private_key_path(election_id, session_id):
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_private_path = os.path.join(private_data_path, str(election_id))
+    election_private_path = os.path.join(PRIVATE_DATA_PATH, str(election_id))
     return os.path.join(election_private_path, session_id, 'privInfo.xml')
 
 def get_file_hash_path(file_path):
@@ -37,6 +38,11 @@ def read_text_file(file_path):
 def read_binary_file(file_path):
     with open(file_path, "rb") as f:
         return f.read()
+
+def write_binary_file(file_path, bytes):
+    # write the sha256 of the private key
+    with open(file_path, 'wb') as file:
+        file.write(bytes)
 
 def create_tar_for_private_keys(election_id, session_ids):
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -70,7 +76,7 @@ def assert_private_key_file_hashes(election_id, session_ids):
         if os.path.exists(session_privpath_hashfile):
             existing_hash_text = read_text_file(hashed_file_path)
             if existing_hash_text != hash_text:
-                    return (f'private key file has a hash mismatch', 500)
+                    return (f'private key file has a hash consistency error', 500)
         else:
             # write the sha256 of the private key
             write_text_file(hashed_file_path, hash_text)
@@ -136,5 +142,46 @@ def delete_private_share(election_id, private_key_base64):
     for session_privpath in private_key_file_paths:
         os.remove(session_privpath)
     
+    return (None, 200)
+
+def restore_private_share(election_id, private_key_base64):
+    private_key_bytes = base64.b64decode(private_key_base64)
+
+    election = get_election_by_id(election_id)
+    session_ids = get_election_session_ids(election)
+
+    with tempfile.TemporaryFile() as tar_file_path:
+        write_binary_file(tar_file_path, private_key_bytes)
+
+        with tempfile.TemporaryDirectory() as target_extract_folder:
+            extract_tar_file(tar_file_path, target_extract_folder)
+
+            for session_id in session_ids:
+                private_key_file_path = get_session_private_key_path(election_id, session_id)
+                private_key_file_hash_path = get_file_hash_path(private_key_file_path)
+                tar_key_file_path = os.path.join(target_extract_folder, session_id, 'privInfo.xml')
+
+                if not os.path.exists(tar_key_file_path):
+                    return (f'Missing key in tar file for session id {session_id}', 400)
+
+                if not os.path.exists(private_key_file_hash_path):
+                    return (f'Missing hash for key share in session id {session_id}', 500)
+                
+                existing_hash_text = read_text_file(private_key_file_hash_path)
+                
+                if os.path.exists(private_key_file_path):
+                    hash_text = hash_file(private_key_file_path, mode = 'rb')
+                    if existing_hash_text != hash_text:
+                        return ('private key file has a hash consistency error', 500)
+
+                tar_key_file_hash = hash_file(tar_key_file_path, mode = 'rb')
+
+                # check hashes match
+                if tar_key_file_hash != existing_hash_text:
+                    return (f'hashes don\'t match for session id {session_id}', 400)
+                
+                # copy share of key for session id
+                shutil.copyfile(tar_key_file_path, private_key_file_path)
+
     return (None, 200)
 
