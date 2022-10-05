@@ -82,7 +82,6 @@ def download_private_share(election_id):
     Download private share of the keys
     '''
     election = get_election_by_id(election_id)
-
     session_ids = get_election_session_ids(election)
 
     msg, code = assert_private_key_file_hashes(election_id, session_ids)
@@ -96,6 +95,9 @@ def download_private_share(election_id):
     return (tar_file_b64, 200)
 
 def check_private_share(election_id, private_key_base64):
+    '''
+    Check provided private key against database
+    '''
     private_key_bytes = base64.b64decode(private_key_base64)
 
     election = get_election_by_id(election_id)
@@ -111,3 +113,28 @@ def check_private_share(election_id, private_key_base64):
     tar_hash = hash_file(tar_file_bytes)
     
     return (tar_hash == pk_hash, 200)
+
+def delete_private_share(election_id, private_key_base64):
+    '''
+    Delete private share of keys
+    '''
+    # first check hashes
+    msg, code = check_private_share(election_id, private_key_base64)
+    if code != 200:
+        return (msg, code)
+    
+    # if everything is okay, continue to delete
+    election = get_election_by_id(election_id)
+    session_ids = get_election_session_ids(election)
+    private_key_file_paths = [get_session_private_key_path(election_id, session_id) for session_id in session_ids]
+
+    # ensure all files exist or otherwise delete none
+    for session_privpath in private_key_file_paths:
+        if not os.path.exists(session_privpath):
+            return (f'missing file {session_privpath}', 500)
+
+    for session_privpath in private_key_file_paths:
+        os.remove(session_privpath)
+    
+    return (None, 200)
+
