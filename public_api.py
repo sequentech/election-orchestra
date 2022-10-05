@@ -288,7 +288,7 @@ def check_private_share():
 
     return make_response(result, code)
 
-@public_api.route('/delete_private_share', methods=['DELETE'])
+@public_api.route('/delete_private_share', methods=['POST'])
 def delete_private_share():
     '''
     delete private share of the keys
@@ -309,7 +309,7 @@ def delete_private_share():
 
     return make_response(result, code)
 
-@public_api.route('/restore_private_share', methods=['DELETE'])
+@public_api.route('/restore_private_share', methods=['POST'])
 def restore_private_share():
     '''
     restore private share of the keys
