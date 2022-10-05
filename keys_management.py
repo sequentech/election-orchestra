@@ -4,7 +4,7 @@ import tempfile
 from models import Session
 import os
 import shutil
-from tools.create_tarball import hash_file, create_deterministic_tar_file
+from tools.create_tarball import hash_file, hash_bytes, create_deterministic_tar_file
 from flask import request, make_response
 import base64
 
@@ -25,25 +25,18 @@ def get_session_private_key_path(election_id, session_id):
 def get_file_hash_path(file_path):
     return file_path + '.sha256'
 
-def create_file_hash(file_path):
-    hashed_file_path = get_file_hash_path(file_path)
-    hash_text = hash_file(file_path, mode = 'rb')
-    
+def write_text_file(file_path, text):
     # write the sha256 of the private key
-    with open(hashed_file_path, 'w', encoding = 'utf-8') as hashed_file:
-        hashed_file.write(hash_text)
+    with open(file_path, 'w', encoding = 'utf-8') as file:
+        file.write(text)
 
-def check_file_hash(file_path):
-    hashed_file_path = get_file_hash_path(file_path)
-    hash_text = hash_file(file_path, mode = 'rb')
+def read_text_file(file_path):
+    with open(file_path, "r", encoding = 'utf-8') as file:
+        return file.read()
 
-    with open(hashed_file_path, "r", encoding = 'utf-8') as hashed_file:
-        existing_hash_text = hashed_file.read()
-        return existing_hash_text == hash_text
-
-def base64_encode_file(file_path):
+def read_binary_file(file_path):
     with open(file_path, "rb") as f:
-        return base64.b64encode(f.read())
+        return f.read()
 
 def create_tar_for_private_keys(election_id, session_ids):
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -58,15 +51,10 @@ def create_tar_for_private_keys(election_id, session_ids):
             tar_filename = "private_keys.tar.gz"
             tar_file_path = os.path.join(tmp_tar_folder, tar_filename)
             create_deterministic_tar_file(tar_file_path, tmpdirname)
-            return base64_encode_file(tar_file_path)
+            #return base64_encode_file(tar_file_path)
+            return read_binary_file(tar_file_path)
 
-def download_private_share(election_id):
-    '''
-    Download private share of the keys
-    '''
-    election = get_election_by_id(election_id)
-
-    session_ids = get_election_session_ids(election)
+def assert_private_key_file_hashes(election_id, session_ids):
     private_key_file_paths = [get_session_private_key_path(election_id, session_id) for session_id in session_ids]
 
     # assert private key file  hashes
@@ -76,15 +64,34 @@ def download_private_share(election_id):
 
         # hash session file
         session_privpath_hashfile = get_file_hash_path(session_privpath)
+
+        hashed_file_path = get_file_hash_path(session_privpath)
+        hash_text = hash_file(session_privpath, mode = 'rb')
         if os.path.exists(session_privpath_hashfile):
-            if not check_file_hash(session_privpath):
-                    return (f'hash for private key file error', 500)
+            existing_hash_text = read_text_file(hashed_file_path)
+            if existing_hash_text != hash_text:
+                    return (f'private key file has a hash mismatch', 500)
         else:
             # write the sha256 of the private key
-            create_file_hash(session_privpath)
+            write_text_file(hashed_file_path, hash_text)
+    
+    return (None, 200)
+
+def download_private_share(election_id):
+    '''
+    Download private share of the keys
+    '''
+    election = get_election_by_id(election_id)
+
+    session_ids = get_election_session_ids(election)
+
+    msg, code = assert_private_key_file_hashes(election_id, session_ids)
+    if code != 200:
+        return (msg, code)
 
     # create tar file with private keys
-    tar_file_b64 = create_tar_for_private_keys(election_id, session_ids)
+    tar_file_bytes = create_tar_for_private_keys(election_id, session_ids)
+    tar_file_b64 = base64.b64encode(tar_file_bytes)
 
     return (tar_file_b64, 200)
 
@@ -94,29 +101,13 @@ def check_private_share(election_id, private_key_base64):
     election = get_election_by_id(election_id)
     session_ids = get_election_session_ids(election)
 
-    private_key_file_paths = [get_session_private_key_path(election_id, session_id) for session_id in session_ids]
-    # assert private key file  hashes
-    for session_privpath in private_key_file_paths:
-        if not os.path.exists(session_privpath):
-            return (f'missing file {session_privpath}', 500)
+    msg, code = assert_private_key_file_hashes(election_id, session_ids)
+    if code != 200:
+        return (msg, code)
 
-        # hash session file
-        session_privpath_hashfile = get_file_hash_path(session_privpath)
-        if os.path.exists(session_privpath_hashfile):
-            if not check_file_hash(session_privpath):
-                    return (f'hash for private key file error', 500)
-        else:
-            # write the sha256 of the private key
-            create_file_hash(session_privpath)
+    pk_hash = hash_bytes(private_key_bytes)
 
-    with tempfile.TemporaryFile() as temp_pk:
-        temp_pk.write(private_key_bytes)
-        pk_hash = hash_file(temp_pk, mode = 'rb')
-    tar_file_b64 = create_tar_for_private_keys(election_id, session_ids)
-    tar_file_bytes = base64.b64decode(tar_file_b64)
-
-    with tempfile.TemporaryFile() as temp_tar:
-        temp_tar.write(tar_file_bytes)
-        tar_hash = hash_file(temp_tar, mode = 'rb')
+    tar_file_bytes = create_tar_for_private_keys(election_id, session_ids)
+    tar_hash = hash_file(tar_file_bytes)
     
     return (tar_hash == pk_hash, 200)

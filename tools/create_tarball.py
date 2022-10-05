@@ -35,6 +35,14 @@ BUF_SIZE = 10*1024
 # deterministic tars
 MAGIC_TIMESTAMP = 1394060400
 
+def hash_bytes(bytes):
+    '''
+    Returns the hexdigest of the hash of the bytes
+    '''
+    hash = hashlib.sha256()
+    hash.update(bytes)
+    return hash.hexdigest()
+
 def hash_file(file_path, mode = 'r', **kwargs):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file
