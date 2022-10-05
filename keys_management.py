@@ -17,10 +17,9 @@ def get_election_session_ids(election):
             with_parent(election,"sessions").\
             order_by(Session.question_number)]
 
-PRIVATE_DATA_PATH = app.config.get('PRIVATE_DATA_PATH', '')
-
 def get_session_private_key_path(election_id, session_id):
-    election_private_path = os.path.join(PRIVATE_DATA_PATH, str(election_id))
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, str(election_id))
     return os.path.join(election_private_path, session_id, 'privInfo.xml')
 
 def get_file_hash_path(file_path):
@@ -116,9 +115,9 @@ def check_private_share(election_id, private_key_base64):
     pk_hash = hash_bytes(private_key_bytes)
 
     tar_file_bytes = create_tar_for_private_keys(election_id, session_ids)
-    tar_hash = hash_file(tar_file_bytes)
+    tar_hash = hash_bytes(tar_file_bytes)
     
-    return (tar_hash == pk_hash, 200)
+    return (str(tar_hash == pk_hash), 200)
 
 def delete_private_share(election_id, private_key_base64):
     '''
@@ -142,7 +141,7 @@ def delete_private_share(election_id, private_key_base64):
     for session_privpath in private_key_file_paths:
         os.remove(session_privpath)
     
-    return (None, 200)
+    return ("", 200)
 
 def restore_private_share(election_id, private_key_base64):
     private_key_bytes = base64.b64decode(private_key_base64)
@@ -150,7 +149,8 @@ def restore_private_share(election_id, private_key_base64):
     election = get_election_by_id(election_id)
     session_ids = get_election_session_ids(election)
 
-    with tempfile.TemporaryFile() as tar_file_path:
+    with tempfile.NamedTemporaryFile() as tar_file:
+        tar_file_path = tar_file.name
         write_binary_file(tar_file_path, private_key_bytes)
 
         with tempfile.TemporaryDirectory() as target_extract_folder:
@@ -183,5 +183,5 @@ def restore_private_share(election_id, private_key_base64):
                 # copy share of key for session id
                 shutil.copyfile(tar_key_file_path, private_key_file_path)
 
-    return (None, 200)
+    return ("", 200)
 
