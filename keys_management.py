@@ -65,7 +65,7 @@ def assert_private_key_file_hashes(election_id, session_ids):
     # assert private key file  hashes
     for session_privpath in private_key_file_paths:
         if not os.path.exists(session_privpath):
-            return (f'missing file {session_privpath}', 500)
+            return (f'missing file {session_privpath}', 400)
 
         # hash session file
         session_privpath_hashfile = get_file_hash_path(session_privpath)
@@ -136,7 +136,7 @@ def delete_private_share(election_id, private_key_base64):
     # ensure all files exist or otherwise delete none
     for session_privpath in private_key_file_paths:
         if not os.path.exists(session_privpath):
-            return (f'missing file {session_privpath}', 500)
+            return (f'missing file {session_privpath}', 400)
 
     for session_privpath in private_key_file_paths:
         os.remove(session_privpath)
