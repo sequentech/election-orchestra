@@ -119,7 +119,7 @@ def check_private_share(election_id, private_key_base64):
             
             retcode = check_election_hashes(election_id, target_extract_folder, session_ids)
     
-    return (True == retcode, 200)
+    return (str(True == retcode), 200)
 
 def delete_private_share(election_id, private_key_base64):
     '''
