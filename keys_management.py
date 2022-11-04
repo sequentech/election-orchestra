@@ -108,16 +108,18 @@ def check_private_share(election_id, private_key_base64):
     election = get_election_by_id(election_id)
     session_ids = get_election_session_ids(election)
 
-    msg, code = assert_private_key_file_hashes(election_id, session_ids)
-    if code != 200:
-        return (msg, code)
+    retcode = False
 
-    pk_hash = hash_bytes(private_key_bytes)
+    with tempfile.NamedTemporaryFile() as tar_file:
+        tar_file_path = tar_file.name
+        write_binary_file(tar_file_path, private_key_bytes)
 
-    tar_file_bytes = create_tar_for_private_keys(election_id, session_ids)
-    tar_hash = hash_bytes(tar_file_bytes)
+        with tempfile.TemporaryDirectory() as target_extract_folder:
+            extract_tar_file(tar_file_path, target_extract_folder)
+            
+            retcode = check_election_hashes(election_id, target_extract_folder, session_ids)
     
-    return (str(tar_hash == pk_hash), 200)
+    return (True == retcode, 200)
 
 def delete_private_share(election_id, private_key_base64):
     '''
@@ -143,6 +145,43 @@ def delete_private_share(election_id, private_key_base64):
     
     return ("", 200)
 
+# compare the hashes of the provided private keys and the actual hashes for the election keys
+def check_election_hashes(election_id, target_extract_folder, session_ids):
+    for session_id in session_ids:
+        private_key_file_path = get_session_private_key_path(election_id, session_id)
+        private_key_file_hash_path = get_file_hash_path(private_key_file_path)
+        tar_key_file_path = os.path.join(target_extract_folder, session_id, 'privInfo.xml')
+
+        if not os.path.exists(tar_key_file_path):
+            return (f'Missing key in tar file for session id {session_id}', 400)
+
+        if not os.path.exists(private_key_file_hash_path):
+            return (f'Missing hash for key share in session id {session_id}', 500)
+
+        existing_hash_text = read_text_file(private_key_file_hash_path)
+
+        if os.path.exists(private_key_file_path):
+            hash_text = hash_file(private_key_file_path, mode = 'rb')
+            if existing_hash_text != hash_text:
+                return ('private key file has a hash consistency error', 500)
+
+        tar_key_file_hash = hash_file(tar_key_file_path, mode = 'rb')
+
+        # check hashes match
+        if tar_key_file_hash != existing_hash_text:
+            return (f'hashes don\'t match for session id {session_id}', 400)
+        
+        # everything ok
+        return True
+
+def restore_election_keys(election_id, target_extract_folder, session_ids):
+    for session_id in session_ids:
+        private_key_file_path = get_session_private_key_path(election_id, session_id)
+        tar_key_file_path = os.path.join(target_extract_folder, session_id, 'privInfo.xml')
+        
+        # copy share of key for session id
+        shutil.copyfile(tar_key_file_path, private_key_file_path)
+
 def restore_private_share(election_id, private_key_base64):
     private_key_bytes = base64.b64decode(private_key_base64)
 
@@ -155,33 +194,12 @@ def restore_private_share(election_id, private_key_base64):
 
         with tempfile.TemporaryDirectory() as target_extract_folder:
             extract_tar_file(tar_file_path, target_extract_folder)
-
-            for session_id in session_ids:
-                private_key_file_path = get_session_private_key_path(election_id, session_id)
-                private_key_file_hash_path = get_file_hash_path(private_key_file_path)
-                tar_key_file_path = os.path.join(target_extract_folder, session_id, 'privInfo.xml')
-
-                if not os.path.exists(tar_key_file_path):
-                    return (f'Missing key in tar file for session id {session_id}', 400)
-
-                if not os.path.exists(private_key_file_hash_path):
-                    return (f'Missing hash for key share in session id {session_id}', 500)
-                
-                existing_hash_text = read_text_file(private_key_file_hash_path)
-                
-                if os.path.exists(private_key_file_path):
-                    hash_text = hash_file(private_key_file_path, mode = 'rb')
-                    if existing_hash_text != hash_text:
-                        return ('private key file has a hash consistency error', 500)
-
-                tar_key_file_hash = hash_file(tar_key_file_path, mode = 'rb')
-
-                # check hashes match
-                if tar_key_file_hash != existing_hash_text:
-                    return (f'hashes don\'t match for session id {session_id}', 400)
-                
-                # copy share of key for session id
-                shutil.copyfile(tar_key_file_path, private_key_file_path)
+            
+            retcode = check_election_hashes(election_id, target_extract_folder, session_ids)
+            if True != retcode:
+                return retcode
+            
+            restore_election_keys(election_id, target_extract_folder, session_ids)
 
     return ("", 200)
 
