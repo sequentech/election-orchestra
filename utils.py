@@ -10,7 +10,6 @@ import signal
 import time
 import subprocess
 import hashlib
-import json
 
 from frestq.app import app
 from asyncproc import Process
