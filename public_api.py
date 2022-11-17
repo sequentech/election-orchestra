@@ -19,6 +19,7 @@ from frestq.app import app, db
 
 from models import Election, Authority, QueryQueue
 from create_election.performer_jobs import check_election_data
+import keys_management
 
 
 from taskqueue import queue_task, apply_task, dequeue_task
@@ -248,3 +249,83 @@ def receive_tally():
     print("ATTENTION received tally callback: ")
     print(request.get_json(force=True, silent=True))
     return make_response("", 202)
+
+@public_api.route('/download_private_share', methods=['POST'])
+def download_private_share():
+    '''
+    Download private share of the keys
+    '''
+    print("ATTENTION received download-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+    
+    result, code = keys_management.download_private_share(election_id)
+
+    return make_response(result, code)
+
+@public_api.route('/check_private_share', methods=['POST'])
+def check_private_share():
+    '''
+    Check private share of the keys
+    '''
+    print("ATTENTION received check-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+    private_key_base64 = req.get('private_key', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+
+    if not isinstance(private_key_base64, str):
+        make_response("private key missing", 400)
+    
+    result, code = keys_management.check_private_share(election_id, private_key_base64)
+
+    return make_response(result, code)
+
+@public_api.route('/delete_private_share', methods=['POST'])
+def delete_private_share():
+    '''
+    delete private share of the keys
+    '''
+    print("ATTENTION received delete-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+    private_key_base64 = req.get('private_key', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+
+    if not isinstance(private_key_base64, str):
+        make_response("private key missing", 400)
+    
+    result, code = keys_management.delete_private_share(election_id, private_key_base64)
+
+    return make_response(result, code)
+
+@public_api.route('/restore_private_share', methods=['POST'])
+def restore_private_share():
+    '''
+    restore private share of the keys
+    '''
+    print("ATTENTION received restore-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+    private_key_base64 = req.get('private_key', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+
+    if not isinstance(private_key_base64, str):
+        make_response("private key missing", 400)
+    
+    result, code = keys_management.restore_private_share(election_id, private_key_base64)
+
+    return make_response(result, code)
