@@ -35,16 +35,28 @@ BUF_SIZE = 10*1024
 # deterministic tars
 MAGIC_TIMESTAMP = 1394060400
 
-def hash_file(file_path):
+def hash_bytes(bytes):
+    '''
+    Returns the hexdigest of the hash of the bytes
+    '''
+    hash = hashlib.sha256()
+    hash.update(bytes)
+    return hash.hexdigest()
+
+def hash_file(file_path, mode = 'r', **kwargs):
     '''
     Returns the hexdigest of the hash of the contents of a file, given the file
     path.
     '''
     hash = hashlib.sha256()
-    f = open(file_path, 'r')
-    for chunk in f.read(BUF_SIZE):
-        hash.update(chunk)
-    f.close()
+    with open(file_path, mode) as f:
+        while True:
+            chunk = f.read(BUF_SIZE)
+            if not chunk:
+                break
+            if 'encoding' in kwargs:
+                chunk = chunk.encode(kwargs.get('encoding'))
+            hash.update(chunk)
     return hash.hexdigest()
 
 def verify_pok_plaintext(pk, proof, ciphertext):
@@ -222,3 +234,24 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             newarcname = os.path.join(arcname, subitem)
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
+
+# tarfile_path: ie /home/user/file.tar.gz
+def create_deterministic_tar_file(tarfile_path, folder_path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.dirname(tarfile_path))
+        import time
+        old_time = time.time
+        time.time = lambda: MAGIC_TIMESTAMP
+        tar = tarfile.open(os.path.basename(tarfile_path), 'w|gz')
+    finally:
+        time.time = old_time
+        os.chdir(cwd)
+    timestamp = MAGIC_TIMESTAMP
+
+    deterministic_tar_add(tar, folder_path, '', timestamp)
+    tar.close()
+
+def extract_tar_file(tar_file_path, target_extract_folder):
+    with tarfile.open(tar_file_path) as tar_file:
+        tar_file.extractall(target_extract_folder)
