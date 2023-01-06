@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2013-2023 Sequent Tech Inc <legal@sequentech.io>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
 from frestq.app import app, db
 from models import Election
 import tempfile
