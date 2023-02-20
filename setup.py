@@ -24,7 +24,7 @@ setup(
         'Jinja2==2.11.3',
         'MarkupSafe==0.23',
         'SQLAlchemy==1.3.23',
-        'Werkzeug==1.0.1',
+        'Werkzeug==2.2.3',
         'argparse==1.2.1',
         'cffi==1.14.4',
         'cryptography==39.0.1',
