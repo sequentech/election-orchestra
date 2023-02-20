@@ -20,7 +20,7 @@ setup(
         'frestq @ git+https://github.com/sequentech/frestq.git@6.1.7',
         'requests==2.22.0',
         'Flask==2.0.3',
-        'Flask-SQLAlchemy==2.4.4',
+        'Flask-SQLAlchemy==2.5.1',
         'Jinja2==3.1.2',
         'MarkupSafe==2.1.1',
         'SQLAlchemy==1.3.23',
