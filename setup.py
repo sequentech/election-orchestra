@@ -19,7 +19,7 @@ setup(
     install_requires=[
         'frestq @ git+https://github.com/sequentech/frestq.git@6.1.7',
         'requests==2.22.0',
-        'Flask==1.0.0',
+        'Flask==2.0.3',
         'Flask-SQLAlchemy==2.4.4',
         'Jinja2==3.1.2',
         'MarkupSafe==2.1.1',
