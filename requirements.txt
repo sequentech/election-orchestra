@@ -1,4 +1,4 @@
-git+https://github.com/sequentech/frestq.git@master
+git+https://github.com/sequentech/frestq.git@9.0.0
 requests==2.31.0
 Flask==2.3.2
 Flask-SQLAlchemy==2.5.1
