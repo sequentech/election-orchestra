@@ -61,7 +61,7 @@ def extra_parse_args(self, parser):
                         type=int)
 
 def extra_run(self):
-    if self.pargs.reset_tally and isinstance(self.pargs.reset_tally,(int,long)):
+    if self.pargs.reset_tally and isinstance(self.pargs.reset_tally,int):
         election_id = self.pargs.reset_tally
         tally_election.performer_jobs.reset_tally(election_id)
         return True
