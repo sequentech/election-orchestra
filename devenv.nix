@@ -7,13 +7,17 @@
   # https://devenv.sh/packages/
   packages = lib.optionals (!config.container.isBuilding) [
     pkgs.git
+
+    # used for building uwsgi:
+    pkgs.gcc
+    pkgs.libffi
   ];
 
   # https://devenv.sh/processes/
-  processes.election-orchestra.exec = """
+  processes.election-orchestra.exec = ''
   export FRESTQ_SETTINGS=base_settings.py
   python -m flask
-  """;
+  '';
 
   enterShell = ''
     git --version
@@ -27,7 +31,13 @@
   languages.python = {
     enable = true;
     venv.enable = true;
-    venv.requirements = builtins.readFile ./requirements.txt;
+    venv.requirements = (
+      builtins.readFile ./requirements.txt + 
+      ''
+      colorama==0.4.6
+      PyYAML==6.0.1
+      ZODB==5.8.1
+      '');
   };
 
   services.postgres = {

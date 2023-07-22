@@ -17,7 +17,7 @@ setup(
     description='election orchestrator',
     long_description=open('README.md').read(),
     install_requires=[
-        'frestq @ git+https://github.com/sequentech/frestq.git@master',
+        'frestq @ git+https://github.com/sequentech/frestq.git@feat/master/k8s',
         'requests==2.31.0',
         'Flask==2.3.2',
         'Flask-SQLAlchemy==2.5.1',
@@ -35,7 +35,7 @@ setup(
         'prettytable==0.7.2',
         'psycopg2-binary==2.8.6',
         'pycparser==2.10',
-        'uwsgi==2.0.18',
+        'uwsgi==2.0.21',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
