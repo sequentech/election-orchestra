@@ -115,10 +115,13 @@ def review_tally(task):
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
     election_privpath = os.path.join(private_data_path, str(election_id))
 
-    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
-    election_pubpath = os.path.join(pubdata_path, str(election_id))
-    tally_path = os.path.join(election_pubpath, 'tally.tar.gz')
+    tally_path = get_tally_file_path(election_id)
     allow_disjoint_multiple_tallies = os.path.join(election_privpath, 'allow_disjoint_multiple_tallies')
+
+    enable_multiple_tallies = app.config.get('ENABLE_MULTIPLE_TALLIES', False)
+
+    if enable_multiple_tallies:
+        reset_tally(election.id)
 
     if not os.path.exists(allow_disjoint_multiple_tallies) and os.path.exists(tally_path):
         raise TaskError(dict(
@@ -629,6 +632,8 @@ def reset_tally(election_id):
     if not election:
         raise TaskError(dict(reason="election not created"))
     
+    remove_existing_tally_files(election_id)
+
     # each session is a question
     sessions = election.sessions.all()
     for session in sessions:
@@ -636,3 +641,21 @@ def reset_tally(election_id):
         for ballot in ballots:
             db.session.delete(ballot)
     db.session.commit()
+
+def remove_existing_tally_files(election_id):
+    tally_path = get_tally_file_path(election_id)
+    tally_hash_path = get_tally_hash_file_path(election_id)
+
+    if os.path.exists(tally_path):
+        os.remove(tally_path)
+
+    if os.path.exists(tally_hash_path):
+        os.remove(tally_hash_path)
+
+def get_tally_file_path(election_id):
+    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
+    election_pubpath = os.path.join(pubdata_path, str(election_id))
+    return os.path.join(election_pubpath, 'tally.tar.gz')
+
+def get_tally_hash_file_path(election_id):
+    return get_tally_file_path(election_id) + '.sha256'
