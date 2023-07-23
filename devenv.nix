@@ -7,6 +7,7 @@
   # https://devenv.sh/packages/
   packages = lib.optionals (!config.container.isBuilding) [
     pkgs.git
+    pkgs.ack
 
     # used for building uwsgi:
     pkgs.gcc
@@ -16,7 +17,7 @@
   # https://devenv.sh/processes/
   processes.election-orchestra.exec = ''
   export FRESTQ_SETTINGS=base_settings.py
-  python -m flask
+  devenv shell python app.py --createdb && python app.py
   '';
 
   enterShell = ''
@@ -30,6 +31,7 @@
   languages.nix.enable = true;
   languages.python = {
     enable = true;
+    package = pkgs.python39;
     venv.enable = true;
     venv.requirements = (
       builtins.readFile ./requirements.txt + 
