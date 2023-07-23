@@ -1,0 +1,40 @@
+{
+	"name": "backend-services",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+	"forwardPorts": [],
+	"workspaceFolder": "/workspace",
+
+	"userEnvProbe": "loginShell",
+	"updateRemoteUserUID": false,
+
+  	"updateContentCommand": "devenv ci",
+
+    "customizations": {
+        "vscode": {
+    	    "extensions": [
+                // run commands on save
+                // https://marketplace.visualstudio.com/items?itemName=fsevenm.run-it-on
+        		"fsevenm.run-it-on",
+
+                // Docker for Visual Studio Code
+        		"ms-azuretools.vscode-docker",
+
+                // direnv support
+        		"mkhl.direnv",
+
+                // Nix language support
+        		"jnoortheen.nix-ide",
+
+                // Markdown support and previsualization
+        		"yzhang.markdown-all-in-one",
+
+                // Debugging
+        		"vadimcn.vscode-lldb",
+
+                // Allows to use Alt+Q (or Option+Q in mac) to rewrap lines
+                "stkb.rewrap"
+    		]
+		}
+	}
+}

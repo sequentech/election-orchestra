@@ -9,6 +9,9 @@
     pkgs.git
     pkgs.ack
 
+    # to create containers
+    pkgs.docker
+
     # used for building uwsgi:
     pkgs.gcc
     pkgs.libffi

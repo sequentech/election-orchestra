@@ -1,0 +1,12 @@
+version: "3.6"
+services:
+  dev:
+    image: ghcr.io/cachix/devenv:latest
+    volumes:
+      - ../../:/workspaces:cached
+      - /var/run/docker.sock:/var/run/docker-host.sock
+    # Required for ptrace-based debuggers like C++, Go, and Rust
+    cap_add:
+    - SYS_PTRACE
+    security_opt:
+      - label:disable
