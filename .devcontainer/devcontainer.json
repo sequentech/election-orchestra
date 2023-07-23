@@ -1,13 +1,7 @@
 {
-	"name": "backend-services",
+	"name": "election-orchestra",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "devcontainer",
-	"forwardPorts": [],
-	"workspaceFolder": "/workspace",
-
-	"userEnvProbe": "loginShell",
-	"updateRemoteUserUID": false,
-
   	"updateContentCommand": "devenv ci",
 
     "customizations": {

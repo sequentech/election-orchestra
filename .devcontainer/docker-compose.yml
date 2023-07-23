@@ -1,6 +1,6 @@
 version: "3.6"
 services:
-  dev:
+  devcontainer:
     image: ghcr.io/cachix/devenv:latest
     volumes:
       - ../../:/workspaces:cached
