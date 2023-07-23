@@ -1,3 +1,10 @@
 custom_settings.py
 *.pyc
 *.sqlite
+
+# Devenv
+.devenv*
+devenv.local.nix
+
+# Direnv
+.direnv/

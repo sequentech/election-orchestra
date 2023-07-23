@@ -1,4 +1,4 @@
-git+https://github.com/sequentech/frestq.git@master
+git+https://github.com/sequentech/frestq.git@feat/master/k8s
 requests==2.31.0
 Flask==2.3.2
 Flask-SQLAlchemy==2.5.1
@@ -16,4 +16,4 @@ itsdangerous==2.1.2
 prettytable==0.7.2
 psycopg2-binary==2.8.6
 pycparser==2.10
-uwsgi==2.0.18
+uwsgi==2.0.21

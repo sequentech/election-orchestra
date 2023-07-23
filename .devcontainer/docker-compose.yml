@@ -1,0 +1,12 @@
+version: "3.6"
+services:
+  devcontainer:
+    image: ghcr.io/cachix/devenv:latest
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ..:/workspace:cached
+    # Required for ptrace-based debuggers like C++, Go, and Rust
+    cap_add:
+    - SYS_PTRACE
+    security_opt:
+      - label:disable
