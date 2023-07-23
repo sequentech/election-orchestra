@@ -29,9 +29,6 @@
     git --version
   '';
 
-  # https://devenv.sh/integrations/codespaces-devcontainer/
-  devcontainer.enable = true;
-
   # https://devenv.sh/languages/
   languages.nix.enable = true;
   languages.python = {
