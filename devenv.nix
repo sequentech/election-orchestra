@@ -33,6 +33,7 @@
   languages.nix.enable = true;
   languages.python = {
     enable = true;
+    # using python39 as default (python310) seems to have some glibc glitch
     package = pkgs.python39;
     venv.enable = true;
     venv.requirements = (
