@@ -3,7 +3,7 @@ services:
   devcontainer:
     image: ghcr.io/cachix/devenv:latest
     volumes:
-      - ../../:/workspaces:cached
+      - ../:/workspace:cached
       - /var/run/docker.sock:/var/run/docker-host.sock
     # Required for ptrace-based debuggers like C++, Go, and Rust
     cap_add:

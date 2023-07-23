@@ -3,6 +3,7 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "devcontainer",
   	"updateContentCommand": "devenv ci",
+	"workspaceFolder": "/workspace",
 
     "customizations": {
         "vscode": {
