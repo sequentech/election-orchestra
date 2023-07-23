@@ -16,8 +16,10 @@
 
   # https://devenv.sh/processes/
   processes.election-orchestra.exec = ''
-  export FRESTQ_SETTINGS=base_settings.py
-  devenv shell python app.py --createdb && python app.py
+  devenv shell bash -c \
+    "export FRESTQ_SETTINGS=base_settings.py &&\
+     python app.py --createdb \
+     && python app.py"
   '';
 
   enterShell = ''
