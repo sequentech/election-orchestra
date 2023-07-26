@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
+# SPDX-License-Identifier: AGPL-3.0-only
+
+[tool.poetry]
+name = "election-orchestra"
+version = "0.1.0"
+description = ""
+authors = ["Eduardo Robles <edu@sequentech.io>"]
+license = "AGPL-3.0-only"
+readme = "README.md"
+packages = [{include = "election_orchestra"}]
+
+[tool.poetry.dependencies]
+frestq = { git = "https://github.com/sequentech/frestq.git", branch = "feat/master/k8s" }
+python = "^3.8"
+requests = "^2.31"
+Flask = "^2.3"
+flask-sqlalchemy = "^3.0"
+cryptography = "^41.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,48 +1,53 @@
 { pkgs, config, lib, ... }:
 
 {
-  # https://devenv.sh/basics/
-  env.GREET = "devenv";
-
-  # https://devenv.sh/packages/
-  packages = lib.optionals (!config.container.isBuilding) [
+  packages = [
     pkgs.git
     pkgs.ack
 
     # to create containers
     pkgs.docker
 
-    # used for building uwsgi:
+    # to inspect containers
+    pkgs.dive
+
+    # used for building uwsgi (TODO: deprecated):
     pkgs.gcc
     pkgs.libffi
   ];
 
-  # https://devenv.sh/processes/
-  processes.election-orchestra.exec = ''
-  devenv shell bash -c \
-    "export FRESTQ_SETTINGS=base_settings.py &&\
-     python app.py --createdb \
-     && python app.py"
-  '';
+  # HACK: I had to use `python $DEVENV_STATE/venv/bin/flask` instead of simply
+  #       `flask` because otherwise it fails for some reason.
+  processes.serve.exec = (
+    ''
+    export FLASK_ENV=development
+    export FLASK_APP=election_orchestra.app:app
+    export PYTHONPATH="$DEVENV_STATE/venv/lib/python3.10/site-packages:$PYTHONPATH"
+    export FRESTQ_SETTINGS=base_settings.py
+    python election_orchestra/app.py --createdb
+    ''
+    # + (if (config.container.isBuilding)
+    #   then "python $DEVENV_STATE/venv/bin/flask run"
+    #   else "flask run"
+    # )
+  );
 
-  enterShell = ''
-    git --version
-  '';
+  # HACK: The venv is missing from PYTHONPATH and PATH so I add them manually
+  enterShell = (
+    ''git --version;''
+    + (
+      lib.optionalString (config.container.isBuilding) 
+      ''export PYTHONPATH="$DEVENV_STATE/venv/lib/python3.10/site-packages:$PYTHONPATH"''
+    )
+  );
 
   # https://devenv.sh/languages/
   languages.nix.enable = true;
   languages.python = {
     enable = true;
-    # using python39 as default (python310) seems to have some glibc glitch
-    package = pkgs.python39;
-    venv.enable = true;
-    venv.requirements = (
-      builtins.readFile ./requirements.txt + 
-      ''
-      colorama==0.4.6
-      PyYAML==6.0.1
-      ZODB==5.8.1
-      '');
+    poetry = {
+      enable = true;
+    };
   };
 
   services.postgres = {

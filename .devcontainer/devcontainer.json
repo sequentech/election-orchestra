@@ -14,6 +14,9 @@
                 // https://marketplace.visualstudio.com/items?itemName=fsevenm.run-it-on
         		"fsevenm.run-it-on",
 
+				// Python IDE support
+				"ms-python.python",
+
                 // Docker for Visual Studio Code
         		"ms-azuretools.vscode-docker",
 
@@ -30,7 +33,10 @@
         		"vadimcn.vscode-lldb",
 
                 // Allows to use Alt+Q (or Option+Q in mac) to rewrap lines
-                "stkb.rewrap"
+                "stkb.rewrap",
+
+				// TOML support, for poetry
+				"tamasfe.even-better-toml"
     		]
 		}
 	}
