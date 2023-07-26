@@ -12,7 +12,7 @@ import subprocess
 import hashlib
 
 from frestq.app import app
-from asyncproc import Process
+from .asyncproc import Process
 
 def mkdir_recursive(path):
     if not os.path.exists(path):

@@ -21,12 +21,12 @@ from frestq.tasks import (SimpleTask, ParallelTask, SequentialTask,
 from frestq.action_handlers import TaskHandler
 from frestq.app import app, db
 
-from models import Election, Authority, Session
-from reject_adapter import RejectAdapter
-from utils import mkdir_recursive
-from vmn import *
+from ..models import Election, Authority, Session
+from ..reject_adapter import RejectAdapter
+from ..utils import mkdir_recursive
+from ..vmn import *
 
-from taskqueue import end_task
+from ..taskqueue import end_task
 
 @decorators.local_task
 @decorators.task(action="create_election", queue="launch_task")

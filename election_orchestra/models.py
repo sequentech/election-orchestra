@@ -11,7 +11,6 @@ from datetime import datetime
 from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import TypeDecorator, VARCHAR
-
 from frestq.app import db
 
 class Election(db.Model):

@@ -24,11 +24,11 @@ from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
-from models import Election, Authority, Session, Ballot
-from reject_adapter import RejectAdapter
-from utils import *
-from vmn import *
-from sha256 import hash_file, hash_data
+from ..models import Election, Authority, Session, Ballot
+from ..reject_adapter import RejectAdapter
+from ..utils import *
+from ..vmn import *
+from ..sha256 import hash_file, hash_data
 
 # we just use always the same timestamp for the files for creating
 # deterministic tars

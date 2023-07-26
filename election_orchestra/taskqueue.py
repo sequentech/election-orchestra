@@ -9,8 +9,8 @@ import json
 from frestq.app import app, db
 from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask, TaskError
-from models import Election, Authority, QueryQueue
-from create_election.performer_jobs import check_election_data
+from .models import Election, Authority, QueryQueue
+from .create_election.performer_jobs import check_election_data
 import threading
 
 

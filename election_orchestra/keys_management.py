@@ -3,14 +3,13 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from frestq.app import app, db
-from models import Election
+from .models import Election, Session
 import tempfile
-from models import Session
 import os
 import shutil
-from tools.create_tarball import hash_file, hash_bytes, create_deterministic_tar_file, extract_tar_file
 from flask import request, make_response
 import base64
+from .tools.create_tarball import hash_file, hash_bytes, create_deterministic_tar_file, extract_tar_file
 
 def get_election_by_id(election_id):
     return db.session.query(Election)\

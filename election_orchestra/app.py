@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
+# SPDX-FileCopyrightText: 2013-2023 Sequent Tech Inc <legal@sequentech.io>
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
@@ -11,18 +11,15 @@ import logging
 import os
 import sys
 
-# Note: we need to import app before decorators or it won't work
-from frestq.app import app
+from frestq.app import app, DefaultConfig as FrestqDefaultConfig
 
-import tally_election.performer_jobs
-from public_api import public_api
-from taskqueue import start_queue
+from .models import *
+from .tally_election import performer_jobs
+from .public_api import public_api
+from .taskqueue import start_queue
 
-logging.basicConfig(level=logging.DEBUG)
 
-### configuration
-
-class DefaultConfig(object):
+class DefaultConfig(FrestqDefaultConfig):
     # debug, set to false on production deployment
     DEBUG = True
 
@@ -48,6 +45,7 @@ class DefaultConfig(object):
     PRIVATE_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/private')
     PUBLIC_DATA_PATH = os.path.join(ROOT_PATH, 'datastore/public')
 
+
 def extra_parse_args(self, parser):
     parser.add_argument(
         "--reset-tally",
@@ -58,25 +56,27 @@ def extra_parse_args(self, parser):
 def extra_run(self):
     if self.pargs.reset_tally and isinstance(self.pargs.reset_tally, int):
         election_id = self.pargs.reset_tally
-        tally_election.performer_jobs.reset_tally(election_id)
+        performer_jobs.reset_tally(election_id)
         return True
 
     return False
 
-def update_config(app):
+def configure_app(app):
     '''
     override config from environment variables, using defaults from the class
     DefaultConfig.
     '''
-    app.configure_app(scheduler=False, config_object=DefaultConfig())
-    config_var_prefix = "ELECTION_ORCHESTRA_"
+    config_object = DefaultConfig()
+    config_var_prefix = "EO_"
     for variable, value in os.environ.items():
         if variable.startswith(config_var_prefix):
             env_name = variable.split(config_var_prefix)[1]
-            app.config[env_name] = value
+            logging.debug(f"SET:from-env-var config.${env_name} = ${value}")
+            setattr(config_object, env_name, value)
+    app.configure_app(scheduler=False, config_object=config_object)
+    app.register_blueprint(public_api, url_prefix='/public_api')
 
-update_config(app)
-app.register_blueprint(public_api, url_prefix='/public_api')
+configure_app(app)
 
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "create-tarball":
@@ -89,4 +89,6 @@ if __name__ == "__main__":
         extra_run=extra_run
     )
 else:
-    start_queue()
+    # used when run using uwsgi or similar
+    with app.app_context():
+        start_queue()

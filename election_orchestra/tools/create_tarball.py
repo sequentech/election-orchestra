@@ -24,9 +24,9 @@ from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.protocol import certs_differ
 from frestq.action_handlers import TaskHandler
 
-from models import Election, Authority, Session
-from utils import *
-from vmn import *
+from ..models import Election, Authority, Session
+from ..utils import *
+from ..vmn import *
 
 
 BUF_SIZE = 10*1024

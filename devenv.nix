@@ -10,10 +10,6 @@
 
     # to inspect containers
     pkgs.dive
-
-    # used for building uwsgi (TODO: deprecated):
-    pkgs.gcc
-    pkgs.libffi
   ];
 
   # HACK: I had to use `python $DEVENV_STATE/venv/bin/flask` instead of simply
@@ -23,24 +19,18 @@
     set -eux
     export FLASK_ENV=development
     export FLASK_APP=election_orchestra.app:app
-    export PYTHONPATH="$VIRTUAL_ENV/lib/python3.10/site-packages/:$PYTHONPATH"
-    export FRESTQ_SETTINGS=base_settings.py
-    python election_orchestra/app.py --createdb
+    export PYTHONPATH="/workspace:$VIRTUAL_ENV/lib/python3.10/site-packages/:$PYTHONPATH"
+    export EO_SQLALCHEMY_DATABASE_URI="postgresql+psycopg2:///dev"
+    timeout 20 bash -c 'until psql -c "SELECT 1" dev; do sleep 0.5; done'
+    python -m election_orchestra.app --createdb
+    flask run
     ''
-    # + (if (config.container.isBuilding)
-    #   then "python $DEVENV_STATE/venv/bin/flask run"
-    #   else "flask run"
-    # )
+    # flask run
+    # ''
   );
 
   # HACK: The venv is missing from PYTHONPATH and PATH so I add them manually
-  enterShell = (
-    ''git --version;''
-    + (
-      lib.optionalString (config.container.isBuilding) 
-      ''export PYTHONPATH="$DEVENV_STATE/venv/lib/python3.10/site-packages:$PYTHONPATH"''
-    )
-  );
+  enterShell = ''git --version;'';
 
   # https://devenv.sh/languages/
   languages.nix.enable = true;
@@ -54,6 +44,9 @@
   services.postgres = {
     enable = true;
     package = pkgs.postgresql_15;
-    initialDatabases = [{ name = "election-orchestra"; }];
+    initialScript = ''
+    CREATE USER dev WITH PASSWORD 'dev' SUPERUSER;
+    '';
+    initialDatabases = [{ name = "dev"; }];
   };
 }

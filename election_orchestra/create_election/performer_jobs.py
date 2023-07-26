@@ -20,9 +20,9 @@ from frestq.tasks import SimpleTask, ParallelTask, ExternalTask, TaskError
 from frestq.protocol import certs_differ
 from frestq.app import app, db
 
-from models import Election, Authority, Session
-from utils import *
-from vmn import *
+from ..models import Election, Authority, Session
+from ..utils import *
+from ..vmn import *
 
 def check_pipe(requirements, l):
     for req in requirements:

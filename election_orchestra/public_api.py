@@ -17,12 +17,12 @@ from frestq.utils import loads, dumps
 from frestq.tasks import SimpleTask, TaskError
 from frestq.app import app, db
 
-from models import Election, Authority, QueryQueue
-from create_election.performer_jobs import check_election_data
-import keys_management
+from .models import Election, Authority, QueryQueue
+from .create_election.performer_jobs import check_election_data
+from election_orchestra import keys_management
 
 
-from taskqueue import queue_task, apply_task, dequeue_task
+from .taskqueue import queue_task, apply_task, dequeue_task
 
 public_api = Blueprint('public_api', __name__)
 

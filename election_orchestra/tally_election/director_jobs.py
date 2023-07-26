@@ -17,9 +17,9 @@ from frestq.tasks import (SimpleTask, ParallelTask, SequentialTask,
 from frestq.action_handlers import TaskHandler, SynchronizedTaskHandler
 from frestq.app import app, db
 
-from models import Election, Authority, Session
-from reject_adapter import RejectAdapter
-from utils import mkdir_recursive
+from ..models import Election, Authority, Session
+from ..reject_adapter import RejectAdapter
+from ..utils import mkdir_recursive
 
 from taskqueue import end_task
 

@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
 import subprocess
-from utils import *
+from .utils import *
 from frestq.app import app
 
 #
