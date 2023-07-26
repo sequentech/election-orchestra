@@ -20,9 +20,10 @@
   #       `flask` because otherwise it fails for some reason.
   processes.serve.exec = (
     ''
+    set -eux
     export FLASK_ENV=development
     export FLASK_APP=election_orchestra.app:app
-    export PYTHONPATH="$DEVENV_STATE/venv/lib/python3.10/site-packages:$PYTHONPATH"
+    export PYTHONPATH="$VIRTUAL_ENV/lib/python3.10/site-packages/:$PYTHONPATH"
     export FRESTQ_SETTINGS=base_settings.py
     python election_orchestra/app.py --createdb
     ''
