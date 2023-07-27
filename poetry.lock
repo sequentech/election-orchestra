@@ -344,7 +344,7 @@ sqlalchemy = "^1.4"
 type = "git"
 url = "https://github.com/sequentech/frestq.git"
 reference = "feat/master/k8s"
-resolved_reference = "2a588c17b142d8c514902805cf52caf2926dcb54"
+resolved_reference = "0d58ee349fb18c9abb2842e0aaf6b6b6929de996"
 
 [[package]]
 name = "greenlet"

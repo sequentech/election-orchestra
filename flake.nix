@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2013-2021 Sequent Tech Inc <legal@sequentech.io>
+# SPDX-FileCopyrightText: 2023 Sequent Tech Inc <legal@sequentech.io>
 # SPDX-License-Identifier: AGPL-3.0-only
 
 # Usage:
@@ -11,17 +11,23 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     devenv.url = "github:cachix/devenv";
+
     nix2container.url = "github:nlewo/nix2container";
     nix2container.inputs.nixpkgs.follows = "nixpkgs";
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
     flake-parts.url = "github:hercules-ci/flake-parts";
+
+    # Get poetry2nix directly from the GitHub source to get an updated 
+    # cryptography lib, see the following link for more info:
+    # https://github.com/nix-community/poetry2nix/issues/413#issuecomment-1604998895
+    poetry2nixFlake.url = "github:nix-community/poetry2nix";
   };
 
   nixConfig = {
     extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
     extra-substituters = "https://devenv.cachix.org";
   };
-  outputs = inputs@{ flake-parts, ... }:
+  outputs = inputs@{ flake-parts, poetry2nixFlake, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.devenv.flakeModule
@@ -34,11 +40,25 @@
       perSystem = { config, self', inputs', pkgs, system, lib, ... }:
         let
           python = pkgs.python3;
+          poetry2nix = poetry2nixFlake.legacyPackages.${pkgs.stdenv.system};
           nix2containerInput = inputs.nix2container;
           nix2container = nix2containerInput.packages.${pkgs.stdenv.system};
-          election_orchestra = pkgs.poetry2nix.mkPoetryApplication {
+
+          # Fixes frestq build. See https://github.com/nix-community/poetry2nix/blob/master/docs/edgecases.md#modulenotfounderror-no-module-named-packagename
+          election_orchestra-build-requirements = {
+            frestq = [ "poetry" ];
+          };
+          election_orchestra-overrides = poetry2nix.defaultPoetryOverrides.extend (
+            self: super: builtins.mapAttrs (package: build-requirements:
+              (builtins.getAttr package super).overridePythonAttrs (old: {
+                buildInputs = (old.buildInputs or [ ]) ++ (builtins.map (pkg: if builtins.isString pkg then builtins.getAttr pkg super else pkg) build-requirements);
+              })
+            ) election_orchestra-build-requirements
+          );
+          election_orchestra = poetry2nix.mkPoetryApplication {
             projectDir = ./.;
             python = python;
+            overrides = election_orchestra-overrides;
           };
           servicePort = "9090";
           dockerImage = nix2container.nix2container.buildImage {
