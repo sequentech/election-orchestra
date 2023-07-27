@@ -16,6 +16,7 @@
     nix2container.inputs.nixpkgs.follows = "nixpkgs";
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    mixnet.url = "github:sequentech/mixnet/feat/master/k8s";
 
     # Get poetry2nix directly from the GitHub source to get an updated 
     # cryptography lib, see the following link for more info:
@@ -27,7 +28,7 @@
     extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
     extra-substituters = "https://devenv.cachix.org";
   };
-  outputs = inputs@{ flake-parts, poetry2nixFlake, ... }:
+  outputs = inputs@{ flake-parts, poetry2nixFlake, mixnet, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.devenv.flakeModule
@@ -37,12 +38,13 @@
       # Per-system attributes can be defined here. The self' and inputs'
       # module parameters provide easy access to attributes of the same
       # system.
-      perSystem = { config, self', inputs', pkgs, system, lib, ... }:
+      perSystem = perSystemInputs@{ config, self', inputs', pkgs, system, lib, ... }:
         let
           python = pkgs.python3;
           poetry2nix = poetry2nixFlake.legacyPackages.${pkgs.stdenv.system};
           nix2containerInput = inputs.nix2container;
           nix2container = nix2containerInput.packages.${pkgs.stdenv.system};
+          mixnetPackages = mixnet.packages.${pkgs.stdenv.system};
 
           # Fixes frestq build. See https://github.com/nix-community/poetry2nix/blob/master/docs/edgecases.md#modulenotfounderror-no-module-named-packagename
           election_orchestra-build-requirements = {
@@ -64,6 +66,16 @@
           dockerImage = nix2container.nix2container.buildImage {
             name = "election_orchestra";
             tag = "latest";
+            copyToRoot = pkgs.buildEnv {
+              name = "root";
+              paths = [ 
+                pkgs.bashInteractive
+                pkgs.coreutils
+                election_orchestra.dependencyEnv
+                mixnetPackages.mixnet
+              ];
+              pathsToLink = [ "/bin" "/lib" ];
+            };
             config = {
               entrypoint = [
                 #"${election_orchestra.dependencyEnv}/bin/flask" "run"
