@@ -8,3 +8,6 @@ devenv.local.nix
 
 # Direnv
 .direnv/
+
+# execution
+activity.json.log
