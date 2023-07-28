@@ -35,6 +35,9 @@
   # HACK: The venv is missing from PYTHONPATH and PATH so I add them manually
   enterShell = ''git --version;'';
 
+  dotenv.enable = true;
+  starship.enable = true;
+
   # https://devenv.sh/languages/
   languages.nix.enable = true;
   languages.python = {
