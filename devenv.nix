@@ -5,6 +5,9 @@
     pkgs.git
     pkgs.ack
 
+    # used in eotest
+    pkgs.nodejs
+
     # to create containers
     pkgs.docker
 

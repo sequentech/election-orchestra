@@ -46,17 +46,32 @@
           nix2container = nix2containerInput.packages.${pkgs.stdenv.system};
           mixnetPackages = mixnet.packages.${pkgs.stdenv.system};
 
-          # Fixes frestq build. See https://github.com/nix-community/poetry2nix/blob/master/docs/edgecases.md#modulenotfounderror-no-module-named-packagename
+          # <Fixes frestq build>
+          # See https://github.com/nix-community/poetry2nix/blob/master/docs/edgecases.md#modulenotfounderror-no-module-named-packagename
           election_orchestra-build-requirements = {
             frestq = [ "poetry" ];
           };
           election_orchestra-overrides = poetry2nix.defaultPoetryOverrides.extend (
-            self: super: builtins.mapAttrs (package: build-requirements:
-              (builtins.getAttr package super).overridePythonAttrs (old: {
-                buildInputs = (old.buildInputs or [ ]) ++ (builtins.map (pkg: if builtins.isString pkg then builtins.getAttr pkg super else pkg) build-requirements);
-              })
-            ) election_orchestra-build-requirements
+            self: super: builtins.mapAttrs 
+              (package: build-requirements:
+                (builtins.getAttr package super).overridePythonAttrs (old: {
+                  buildInputs = 
+                    (old.buildInputs or [ ])
+                    ++ (
+                      builtins.map 
+                        (pkg: 
+                          if (builtins.isString pkg) 
+                          then (builtins.getAttr pkg super)
+                          else pkg
+                        )
+                        build-requirements
+                    );
+                })
+              )
+              election_orchestra-build-requirements
           );
+          # </Fixes frestq build>
+
           election_orchestra = poetry2nix.mkPoetryApplication {
             projectDir = ./.;
             python = python;
@@ -71,8 +86,10 @@
               paths = [ 
                 pkgs.bashInteractive
                 pkgs.coreutils
-                election_orchestra.dependencyEnv
+                pkgs.nodejs
+                python.pkgs.gunicorn
                 mixnetPackages.mixnet
+                election_orchestra.dependencyEnv
               ];
               pathsToLink = [ "/bin" "/lib" ];
             };
@@ -95,13 +112,20 @@
               };
 
             };
-            # This is to not rebuild/push uwsgi and pythonEnv closures on a
-            # hello.py change.
+            # This is to not rebuild everything on code changes
             layers = [
               (nix2container.nix2container.buildLayer {
                 deps = [
-                  election_orchestra.dependencyEnv
                   python.pkgs.gunicorn
+                  pkgs.bashInteractive
+                  pkgs.coreutils
+                  pkgs.nodejs
+                  mixnetPackages.mixnet
+                ];
+              })
+              (nix2container.nix2container.buildLayer {
+                deps = [
+                  election_orchestra.dependencyEnv
                 ];
               })
             ];

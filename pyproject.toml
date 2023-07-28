@@ -20,7 +20,6 @@ cryptography = "^41.0"
 psycopg2 = "^2.9.6"
 sqlalchemy = "^1.4"
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

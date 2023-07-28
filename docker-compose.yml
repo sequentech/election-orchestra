@@ -1,0 +1,55 @@
+# export COMPOSE_PROJECT_NAME=trustee-network
+# docker compose up --build --force-recreate
+version: "3.6"
+services:
+  trustee1:
+    #restart: unless-stopped
+    image: election_orchestra:latest
+    environment:
+      - EO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://db1:db1@db1/db1
+    ports:
+      - 8080-8084
+      - 4081/udp
+    depends_on:
+      - db1
+    volumes:
+      - ./data/trustee1/datastore:/datastore
+    profiles:
+      - trustee1
+      - election-orchestra
+
+  #trustee2:
+  #  restart: unless-stopped
+  #  image: election_orchestra:latest
+  #  environment:
+  #    - EO_SQLALCHEMY_DATABASE_URI="postgresql+psycopg2:///db2"
+  #  ports:
+  #    - 8080-8084
+  #    - 4081/udp
+  #  depends_on:
+  #    - db2
+  #  volumes:
+  #    - ./data/trustee1/datastore:/datastore
+
+  db1:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: db1
+      POSTGRES_PASSWORD: db1
+    ports:
+      - "5432"
+    volumes:
+      - ./data/db1:/var/lib/postgresql/data
+    profiles:
+      - trustee1
+      - db
+  #db2:
+  #  image: postgres:15
+  #  environment:
+  #    POSTGRES_USER: db2
+  #    POSTGRES_PASSWORD: db2
+  #  ports:
+  #    - "5432"
+  #  volumes:
+  #    - ./data/db1:/var/lib/postgresql/data
+  
