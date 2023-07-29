@@ -24,10 +24,6 @@
     poetry2nixFlake.url = "github:nix-community/poetry2nix";
   };
 
-  nixConfig = {
-    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
-    extra-substituters = "https://devenv.cachix.org";
-  };
   outputs = inputs@{ flake-parts, poetry2nixFlake, mixnet, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
@@ -73,11 +69,20 @@
           # </Fixes frestq build>
 
           election_orchestra = poetry2nix.mkPoetryApplication {
-            projectDir = ./.;
+            projectDir = poetry2nix.cleanPythonSources { src = ./.; };
             python = python;
             overrides = election_orchestra-overrides;
+            postInstall = ''
+              mkdir -p $out/bin $out/lib/node_modules/election_orchestra/
+              cp scripts/bin/* $out/bin/
+              cp -r scripts/lib/* $out/lib/node_modules/election_orchestra/
+            '';
           };
-          servicePort = "9090";
+          utils = import ./scripts/nix/utils.nix {inherit lib;};
+          envFile = (utils.loadEnv ./.env);
+          servicePort = if (builtins.hasAttr "EO_FLASK_RUN_PORT" envFile)
+            then envFile.EO_FLASK_RUN_PORT
+            else "9090";
           dockerImage = nix2container.nix2container.buildImage {
             name = "election_orchestra";
             tag = "latest";
@@ -88,29 +93,33 @@
                 pkgs.coreutils
                 pkgs.nodejs
                 python.pkgs.gunicorn
+                pkgs.openssl
+                pkgs.jre8
+                pkgs.gmp
                 mixnetPackages.mixnet
                 election_orchestra.dependencyEnv
               ];
-              pathsToLink = [ "/bin" "/lib" ];
+              pathsToLink = [ "/bin" "/lib" "/share" ];
             };
             config = {
-              entrypoint = [
-                #"${election_orchestra.dependencyEnv}/bin/flask" "run"
-                "${python.pkgs.gunicorn}/bin/gunicorn"
-                "-b" "0.0.0.0:${servicePort}"
-                "--log-level" "debug"
-                "election_orchestra.app:app"
-              ];
-              Env = lib.mapAttrsToList (name: value: "${name}=${value}") {
-                FLASK_APP = "election_orchestra.app:app";
-                FLASK_RUN_PORT = "${servicePort}";
-                FLASK_RUN_HOST = "0.0.0.0";
-                PYTHONPATH = "${election_orchestra.dependencyEnv}/lib/python3.10/site-packages";
-              };
+              # docker-entrypoint.sh comes from election_orchestra package,
+              # especifically from <this-repo>/scripts/bin/docker-entrypoint.sh
+              entrypoint = ["/bin/docker-entrypoint.sh"];
+
+              # Load env that is the result of the ".env" file plus some 
+              # overriding from this flake
+              Env = lib.mapAttrsToList 
+                  (name: value: "${name}=${value}")
+                  (let 
+                    baseEnv = {
+                      FLASK_RUN_PORT = "${servicePort}";
+                      PYTHONPATH = "${election_orchestra.dependencyEnv}/lib/python3.10/site-packages";
+                    };
+                    joined = envFile // baseEnv;
+                  in joined);
               ExposedPorts  = {
                 "${servicePort}/tcp" = {};
               };
-
             };
             # This is to not rebuild everything on code changes
             layers = [
@@ -120,6 +129,11 @@
                   pkgs.bashInteractive
                   pkgs.coreutils
                   pkgs.nodejs
+                  pkgs.openssl
+                ];
+              })
+              (nix2container.nix2container.buildLayer {
+                deps = [
                   mixnetPackages.mixnet
                 ];
               })
