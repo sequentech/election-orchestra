@@ -1,5 +1,5 @@
-# export COMPOSE_PROJECT_NAME=trustee-network
 # docker compose up --build --force-recreate
+# docker compose exec -it trustee1 eotest full --vmnd --vcount 100 --peers trustee2_nginx
 version: "3.6"
 
 x-trustee-common: &trustee_common

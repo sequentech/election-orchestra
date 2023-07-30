@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 #
+import logging
 import pickle
 import base64
 import json
@@ -15,13 +16,17 @@ import threading
 
 
 def safe_dequeue():
+    app.app_context().push()
+    logging.debug("safe_dequeue(): starting")
     try:
         dequeue_task()
         return True
-    except Exception as e:
+    except Exception as error:
+        logging.debug(f"safe_dequeue(): exception {error}")
         return False
 
 def start_queue(queue_continue=False):
+    logging.debug(f"launching start_queue(queue_continue={queue_continue})")
     if not queue_continue:
         doing = db.session.query(QueryQueue).all()
         for i in doing:
@@ -38,17 +43,23 @@ def start_queue(queue_continue=False):
 
 
 def dequeue_task():
+    logging.debug("dequeue_task(): starting")
     doing = db.session.query(QueryQueue).filter(QueryQueue.doing == True)
-    if not doing.count():
+    todos = db.session.query(QueryQueue).filter(QueryQueue.doing == False)
+    logging.debug(f"dequeue_task(): doing.count() = {doing.count()}")
+    if not doing.count() and todos.count() > 0:
+        logging.debug(f"dequeue_task(): getting next todo task")
         todo = db.session.query(QueryQueue)\
             .with_for_update(nowait=True, of=QueryQueue)\
             .order_by(QueryQueue.id)\
             .first()
         todo.doing = True
+        logging.debug(f"dequeue_task(): todo.id = {todo.id}")
         db.session.commit()
 
         apply_task(todo.task, todo.data)
-
+    else:
+        logging.debug("no task to do?")
 
 def queue_task(task='election', data=None):
     data = data or {}
@@ -61,6 +72,7 @@ def queue_task(task='election', data=None):
 
 
 def apply_task(task, data):
+    logging.debug(f"apply_task(task={task}, data={data})")
     d = pickle.loads(base64.b64decode(data.encode('utf-8')))
     if task == 'election':
         r = election_task(d)

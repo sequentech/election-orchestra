@@ -61,7 +61,7 @@ def extra_run(self):
 
     return False
 
-def configure_app(app):
+def configure_app(app, launch_scheduler):
     '''
     override config from environment variables, using defaults from the class
     DefaultConfig.
@@ -73,22 +73,23 @@ def configure_app(app):
             env_name = variable.split(config_var_prefix)[1]
             logging.debug(f"SET:from-env-var config.{env_name} = {value}")
             setattr(config_object, env_name, value)
-    app.configure_app(scheduler=False, config_object=config_object)
+    app.configure_app(scheduler=launch_scheduler, config_object=config_object)
     app.register_blueprint(public_api, url_prefix='/public_api')
 
-configure_app(app)
 
 if __name__ == "__main__":
+    configure_app(app, launch_scheduler=False)
     if len(sys.argv) == 3 and sys.argv[1] == "create-tarball":
         from tools import create_tarball
         create_tarball.create(sys.argv[2])
         exit(0)
+    logging.debug(f"launching app.run")
     app.run(
         parse_args=True,
         extra_parse_func=extra_parse_args, 
         extra_run=extra_run
     )
 else:
-    # used when run using uwsgi or similar
-    with app.app_context():
-        start_queue()
+    configure_app(app, launch_scheduler=True)
+    app.app_context().push()
+    start_queue()
