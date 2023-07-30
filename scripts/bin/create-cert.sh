@@ -14,20 +14,20 @@ CERT_DNS1="${CERT_DNS1:-dns1}"
 CERT_KEY_LENGTH="${CERT_KEY_LENGTH:-4096}"
 CERT_KEY_ALGORITHM="${CERT_KEY_ALGORITHM:-rsa}"
 
-CERT_DIR="${CERT_DIR:-/datastore/certs}"
-CERT_PATH="${CERT_PATH:-$CERT_DIR/cert.pem}"
-CERT_KEY_PATH="${CERT_KEY_PATH:-$CERT_DIR/key-nopass.pem}"
-CERT_CALIST_PATH="${CERT_CALIST_PATH:-$CERT_DIR/calist}"
+EO_SSL_CERT_DIR="${EO_SSL_CERT_DIR:-/datastore/certs}"
+EO_SSL_CERT_PATH="${EO_SSL_CERT_PATH:-$EO_SSL_CERT_DIR/cert.pem}"
+EO_SSL_KEY_PATH="${EO_SSL_KEY_PATH:-$EO_SSL_CERT_DIR/cert.key.pem}"
+EO_SSL_CALIST_PATH="${EO_SSL_CALIST_PATH:-$EO_SSL_CERT_DIR/cert.calist.pem}"
 CERT_DAYS="${CERT_DAYS:-3650}"
 CERT_DIGEST="${CERT_DIGEST:-sha256}"
 
 CREATE_CERT=${CREATE_CERT:-false}
 CALIST_COPY=""
 
-if [ ! -f "${CERT_PATH}" ]; then
+if [ ! -f "${EO_SSL_CERT_PATH}" ]; then
   CREATE_CERT=true
-  if [ ! -d "${CERT_DIR}" ]; then
-    mkdir -p "${CERT_DIR}"
+  if [ ! -d "${EO_SSL_CERT_DIR}" ]; then
+    mkdir -p "${EO_SSL_CERT_DIR}"
   fi
 fi
 
@@ -37,8 +37,8 @@ if [ true == "$CREATE_CERT" ]; then
     -x509 \
     -newkey "${CERT_KEY_ALGORITHM}:${CERT_KEY_LENGTH}" \
     -extensions v3_ca \
-    -keyout "${CERT_KEY_PATH}" \
-    -out "${CERT_PATH}" \
+    -keyout "${EO_SSL_KEY_PATH}" \
+    -out "${EO_SSL_CERT_PATH}" \
     -days "${CERT_DAYS}" \
     -subj "/C=${CERT_COUNTRY}/ST=${CERT_STATE}/L=${CERT_LOCALITY}/O=${CERT_ORG}/OU=${CERT_ORG_UNIT}/CN=${CERT_COMMON_NAME}/emailAddress=${CERT_EMAIL}" \
     -config <(cat <<-EOF
@@ -68,6 +68,5 @@ issuerAltName          = issuer:copy
 
 EOF
 )
-  cp "$CERT_PATH" "$CERT_CALIST_PATH"
-  echo "$CALIST_COPY" >> "$CERT_CALIST_PATH"
+  cp "$EO_SSL_CERT_PATH" "$EO_SSL_CALIST_PATH"
 fi

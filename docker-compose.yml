@@ -1,17 +1,42 @@
 # export COMPOSE_PROJECT_NAME=trustee-network
 # docker compose up --build --force-recreate
 version: "3.6"
+
+x-trustee-common: &trustee_common
+  restart: unless-stopped
+  image: election_orchestra:latest
+  environment:
+    ETCD_ENDPOINT: http://etcd_service:2379
+    TRUSTEES: trustee1,trustee2
+  ports:
+    - 8081-8083
+    - 8084/udp
+  depends_on: &trustee_depends_on
+    etcd_service:
+        required: true
+        condition: service_started
+
+x-trustee-nginx-common: &trustee_nginx_common
+  restart: unless-stopped
+  image: nginx:1.25
+  env_file: .env
+  ports:
+   - "8080"
+  environment: &trustee_nginx_env
+   NGINX_PORT: "8080"
+   DOLLAR: "$"
+
 services:
   trustee1:
-    restart: unless-stopped
-    image: election_orchestra:latest
+    <<: *trustee_common
     environment:
-      - EO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://db1:db1@db1/db1
-    ports:
-      - 8080-8084
-      - 4081/udp
+      SERVICE_NAME: trustee1
+      CERT_COMMON_NAME: trustee1_nginx
+      EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db1:db1@db1/db1
     depends_on:
-      - db1
+      <<: *trustee_depends_on
+      db1:
+        condition: service_started
     volumes:
       - ./data/trustee1/datastore:/datastore
     profiles:
@@ -19,20 +44,52 @@ services:
       - election-orchestra
 
   trustee2:
-    restart: unless-stopped
-    image: election_orchestra:latest
+    <<: *trustee_common
     environment:
-      - EO_SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://db2:db2@db2/db2
-    ports:
-      - 8080-8084
-      - 4081/udp
+      SERVICE_NAME: trustee2
+      CERT_COMMON_NAME: trustee2_nginx
+      EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db2:db2@db2/db2
     depends_on:
-      - db2
+      <<: *trustee_depends_on
+      db2:
+        condition: service_started
     volumes:
       - ./data/trustee2/datastore:/datastore
     profiles:
       - trustee2
       - election-orchestra
+
+  trustee1_nginx:
+    <<: *trustee_nginx_common
+    depends_on:
+      - trustee1
+    volumes:
+      - ./scripts/nginx:/etc/nginx
+      - ./data/trustee1/nginx:/etc/nginx/conf.d
+      - ./data/trustee1/datastore:/datastore
+    environment:
+      <<: *trustee_nginx_env
+      UPSTREAM_SERVICE_NAME: trustee1
+      NGINX_HOST: trustee1_nginx
+    profiles:
+      - nginx
+      - trustee1
+
+  trustee2_nginx:
+    <<: *trustee_nginx_common
+    depends_on:
+      - trustee2
+    volumes:
+      - ./scripts/nginx:/etc/nginx
+      - ./data/trustee2/nginx:/etc/nginx/conf.d
+      - ./data/trustee2/datastore:/datastore
+    environment:
+      <<: *trustee_nginx_env
+      UPSTREAM_SERVICE_NAME: trustee2
+      NGINX_HOST: trustee2_nginx
+    profiles:
+      - nginx
+      - trustee2
 
   db1:
     image: postgres:15
@@ -58,3 +115,22 @@ services:
     profiles:
       - trustee2
       - db
+
+  etcd_service:
+    image: quay.io/coreos/etcd:v3.4.0
+    command: >
+      /usr/local/bin/etcd
+        --name etcd_service
+        --listen-client-urls http://0.0.0.0:2379
+        --advertise-client-urls http://etcd_service:2379
+        --listen-peer-urls http://0.0.0.0:2380
+        --initial-advertise-peer-urls http://etcd_service:2380
+        --initial-cluster=etcd_service=http://etcd_service:2380
+        --initial-cluster-token etcd-cluster-1
+        --initial-cluster-state new
+        --heartbeat-interval=250
+        --election-timeout=1250
+    ports:
+      - 2379-2380
+    volumes:
+      - ./data/etcd_service:/etcd_data

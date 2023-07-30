@@ -29,14 +29,14 @@ class DefaultConfig(FrestqDefaultConfig):
     # URL to our HTTP server
     VFORK_SERVER_URL = 'http://127.0.0.1'
 
-    VFORK_SERVER_PORT_RANGE = [4081, 4083]
+    VFORK_SERVER_PORT = "8082"
 
     # Socket address given as <hostname>:<port> to our hint server.
     # A hint server is a simple UDP server that reduces latency and
     # traffic on the HTTP servers.
     VFORK_HINT_SERVER_SOCKET = '127.0.0.1'
 
-    VFORK_HINT_SERVER_PORT_RANGE = [8081, 8083]
+    VFORK_HINT_SERVER_PORT = "8084"
 
     ROOT_PATH = os.path.split(os.path.abspath(__file__))[0]
 
@@ -71,7 +71,7 @@ def configure_app(app):
     for variable, value in os.environ.items():
         if variable.startswith(config_var_prefix):
             env_name = variable.split(config_var_prefix)[1]
-            logging.debug(f"SET:from-env-var config.${env_name} = ${value}")
+            logging.debug(f"SET:from-env-var config.{env_name} = {value}")
             setattr(config_object, env_name, value)
     app.configure_app(scheduler=False, config_object=config_object)
     app.register_blueprint(public_api, url_prefix='/public_api')

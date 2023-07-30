@@ -80,9 +80,22 @@
           };
           utils = import ./scripts/nix/utils.nix {inherit lib;};
           envFile = (utils.loadEnv ./.env);
-          servicePort = if (builtins.hasAttr "EO_FLASK_RUN_PORT" envFile)
-            then envFile.EO_FLASK_RUN_PORT
-            else "9090";
+          flaskPort = utils.getAttrDefault
+            "EO_FLASK_RUN_PORT"
+            envFile
+            "8081";
+          vForkServerPort = utils.getAttrDefault
+            "EO_VFORK_SERVER_PORT"
+            envFile
+            "8082";
+          eotestPort = utils.getAttrDefault
+            "EO_TEST_PORT"
+            envFile
+            "8083";
+          vForkHintServerPort = utils.getAttrDefault
+            "EO_VFORK_HINT_SERVER_PORT"
+            envFile
+            "8084";
           dockerImage = nix2container.nix2container.buildImage {
             name = "election_orchestra";
             tag = "latest";
@@ -95,7 +108,9 @@
                 python.pkgs.gunicorn
                 pkgs.openssl
                 pkgs.jre8
+                pkgs.vim
                 pkgs.gmp
+                pkgs.etcd
                 mixnetPackages.mixnet
                 election_orchestra.dependencyEnv
               ];
@@ -112,13 +127,16 @@
                   (name: value: "${name}=${value}")
                   (let 
                     baseEnv = {
-                      FLASK_RUN_PORT = "${servicePort}";
+                      FLASK_RUN_PORT = "${flaskPort}";
                       PYTHONPATH = "${election_orchestra.dependencyEnv}/lib/python3.10/site-packages";
                     };
                     joined = envFile // baseEnv;
                   in joined);
-              ExposedPorts  = {
-                "${servicePort}/tcp" = {};
+              ExposedPorts = {
+                "${flaskPort}/tcp" = {};
+                "${vForkServerPort}/tcp" = {};
+                "${eotestPort}/tcp" = {};
+                "${vForkHintServerPort}/udp" = {};
               };
             };
             # This is to not rebuild everything on code changes

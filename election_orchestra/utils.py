@@ -30,15 +30,15 @@ def get_server_url():
     '''
     Return a server url that can be used
     '''
-    return "%s:%d" % (app.config.get('VFORK_SERVER_URL', ''),
-        app.config.get('VFORK_SERVER_PORT_RANGE', '')[0])
+    return "%s:%s" % (app.config.get('VFORK_SERVER_URL', ''),
+        app.config.get('VFORK_SERVER_PORT', ''))
 
 def get_hint_server_url():
     '''
     Return a hint server url that can be used
     '''
-    return "%s:%d" % (app.config.get('VFORK_HINT_SERVER_SOCKET', ''),
-        app.config.get('VFORK_HINT_SERVER_PORT_RANGE', '')[0])
+    return "%s:%s" % (app.config.get('VFORK_HINT_SERVER_SOCKET', ''),
+        app.config.get('VFORK_HINT_SERVER_PORT', ''))
 
 def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
     '''

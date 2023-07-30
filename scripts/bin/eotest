@@ -50,11 +50,16 @@ import os
 
 BUF_SIZE = 10*1024
 
-CERT_DIR = os.environ.get('CERT_DIR', '/datastore/certs/')
-CERT_PREFIX = os.environ.get('CERT_PREFIX', 'cert')
-CERT_PATH = os.environ.get('CERT_PATH', f'${CERT_DIR}/${CERT_PREFIX}.pem')
-CERT_KEY_PATH = os.environ.get('CERT_KEY_PATH', f'${CERT_DIR}/key-nopass.pem')
-CERT_CALIST_PATH = os.environ.get('CERT_CALIST_PATH', f'${CERT_DIR}/calist')
+EO_CERT_DIR = os.environ.get('EO_CERT_DIR', '/datastore/certs')
+EO_CERT_PATH = os.environ.get('EO_CERT_PATH', f'{EO_CERT_DIR}/cert.pem')
+EO_CERT_KEY_PATH = os.environ.get(
+    'EO_CERT_KEY_PATH', f'{EO_CERT_DIR}/cert.key.pem'
+)
+EO_CERT_CALIST_PATH = os.environ.get(
+    'EO_CERT_CALIST_PATH', f'{EO_CERT_DIR}/cert.calist.pem'
+)
+CERT_COMMON_NAME = os.environ.get('CERT_COMMON_NAME', 'trustee1')
+
 
 # with three authorities 60 seconds was not enough
 EOTEST_PK_TIMEOUT = int(os.environ.get('PK_TIMEOUT', '600'))
@@ -65,7 +70,8 @@ EOTEST_TALLY_TIMEOUT = int(os.environ.get('PK_TIMEOUT', '21600'))
 EOTEST_DATA_DIR = os.environ.get('DATA_DIR', '/datastore/eotest/data')
 NODE_BIN_PATH = os.environ.get('NODE_BIN', '/bin/node')
 EOTEST_VMND_BIN_PATH = os.environ.get('EOTEST_VMND_BIN_PATH', '/bin/vmnd')
-EOTEST_LOCAL_PORT = int(os.environ.get('LOCAL_PORT', '8084'))
+EO_TEST_PORT = int(os.environ.get('EO_TEST_PORT', '8083'))
+EO_PEER_LIST = os.environ.get('EO_PEER_LIST', '/datastore/eopeerlist/')
 
 
 if not os.path.exists(EOTEST_DATA_DIR):
@@ -81,7 +87,8 @@ def getPeerPkg(mypeerpkg):
     if mypeerpkg is None:
         mypeerpkg = subprocess.check_output(["eopeers", "--show-mine"])
     if isinstance(mypeerpkg, bytes):
-        return json.loads(mypeerpkg.decode("utf-8"))
+        data = json.loads(mypeerpkg.decode("utf-8"))
+        return data
     else:
         return mypeerpkg
 
@@ -90,8 +97,8 @@ def getTallyData(mypeerpkg):
     localServer = mypeerpkg["hostname"]
     return {
         # 'election_id': electionId,
-        "callback_url": "https://" + localServer + ":" + str(EOTEST_LOCAL_PORT) + "/receive_tally",
-        "votes_url": "https://" + localServer + ":" + str(EOTEST_LOCAL_PORT) + "/",
+        "callback_url": "https://" + localServer + ":" + str(EO_TEST_PORT) + "/receive_tally",
+        "votes_url": "https://" + localServer + ":" + str(EO_TEST_PORT) + "/",
         "votes_hash": "ni:///sha-256;"
     }
 
@@ -103,7 +110,7 @@ def _apiUrl(path, pkg):
     '''
     return "https://%(hostname)s:%(port)d/%(path)s" % dict(
         hostname=pkg["hostname"],
-        port=pkg.get("port", 5000),
+        port=pkg.get("port", EO_TEST_PORT),
         path=path
     )
 
@@ -157,7 +164,7 @@ def grabAuthData(eopeers_dir, mypeerpkg, eopeers):
 def getStartData(eopeers_dir, mypeerpkg, eopeers):
     mypeerpkg = getPeerPkg(mypeerpkg)
     return {
-        "callback_url": "https://" + mypeerpkg["hostname"] + ":" + str(EOTEST_LOCAL_PORT) + "/key_done",
+        "callback_url": f"https://{mypeerpkg['hostname']}:{EO_TEST_PORT}/key_done",
         "title": "Test election",
         "description": "election description",
         'presentation': {},
@@ -276,7 +283,12 @@ def startServer(port):
     import ssl
     print("> Starting server on port " + str(port))
     server = ThreadingHTTPServer(('', port), RequestHandler)
-    server.socket = ssl.wrap_socket(server.socket, certfile=CERT_PATH, keyfile=CERT_KEY_PATH, server_side=True)
+    server.socket = ssl.wrap_socket(
+        server.socket,
+        certfile=EO_CERT_PATH,
+        keyfile=EO_CERT_KEY_PATH,
+        server_side=True
+    )
     thread = threading.Thread(target = server.serve_forever, daemon=True)
     thread.start()
 
@@ -286,7 +298,7 @@ def startElection(electionId, url, data):
     data['id'] = int(electionId)
     print("> Creating election %s" % electionId)
     cv.done = False
-    r = session.request('post', url, data=json.dumps(data), verify=CERT_CALIST_PATH, cert=(CERT_PATH, CERT_KEY_PATH))
+    r = session.request('post', url, data=json.dumps(data), verify=EO_CERT_CALIST_PATH, cert=(EO_CERT_PATH, EO_CERT_KEY_PATH))
     print("> " + str(r))
 
 def waitForPublicKey():
@@ -318,7 +330,7 @@ def doTally(electionId, url, data, votesFile, hash):
     # print("> Tally post with " + json.dumps(data))
     print("> Requesting tally..")
     cv.done = False
-    r = session.request('post', url, data=json.dumps(data), verify=CERT_CALIST_PATH, cert=(CERT_PATH, CERT_KEY_PATH))
+    r = session.request('post', url, data=json.dumps(data), verify=EO_CERT_CALIST_PATH, cert=(EO_CERT_PATH, EO_CERT_KEY_PATH))
     print("> " + str(r))
     if r.status_code == 400:
         print("> error:" + str(r.text))
@@ -347,7 +359,7 @@ def downloadTally(url, electionId):
     path = os.path.join(EOTEST_DATA_DIR, fileName)
     print("> Downloading to %s" % path)
     with open(path, 'wb') as handle:
-        request = session.request('get',url, stream=True, verify=CERT_CALIST_PATH, cert=(CERT_PATH, CERT_KEY_PATH))
+        request = session.request('get',url, stream=True, verify=EO_CERT_CALIST_PATH, cert=(EO_CERT_PATH, EO_CERT_KEY_PATH))
 
         for block in request.iter_content(1024):
             if not block:
@@ -359,9 +371,9 @@ def downloadTally(url, electionId):
 
 def create(args):
     electionId = args.electionId
-    startServer(EOTEST_LOCAL_PORT)
+    startServer(EO_TEST_PORT)
     mypeerpkg = getPeerPkg(args.mypeerpkg)
-    startData = getStartData(args.eopeers_dir, args.mypeerpkg, args.peers)
+    startData = getStartData(EO_PEER_LIST, args.mypeerpkg, args.peers)
     startUrl = _apiUrl("public_api/election", mypeerpkg)
     startElection(electionId, startUrl, startData)
     publicKey = waitForPublicKey()
@@ -430,7 +442,7 @@ def encrypt(args):
 
 def tally(args):
     if(args.command[0] == "tally"):
-        startServer(EOTEST_LOCAL_PORT)
+        startServer(EO_TEST_PORT)
 
     electionId = args.electionId
 
@@ -470,7 +482,6 @@ def main(argv):
 encrypt <electionId>: encrypts votes
 tally <electionId>: launches tally
 full: does the whole process''')
-    parser.add_argument('--eopeers-dir', help='directory with the eopeers packages to use as authorities', default = '/etc/eopeers/')
     parser.add_argument('--peers', nargs='+', default=None, help='list of authorities to pair with. defaults to all of them')
     parser.add_argument('--mypeerpkg', help='path to my peer package. if empty, calls to eopeers --show-mine', default = None)
     parser.add_argument('--vfile', help='json file to read votes from', default = 'votes.json')
