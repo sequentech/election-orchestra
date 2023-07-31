@@ -14,7 +14,8 @@ import sys
 from frestq.app import app, DefaultConfig as FrestqDefaultConfig
 
 from .models import *
-from .tally_election import performer_jobs
+from .create_election import director_jobs, performer_jobs
+from .tally_election import director_jobs, performer_jobs
 from .public_api import public_api
 from .taskqueue import start_queue
 
@@ -91,5 +92,4 @@ if __name__ == "__main__":
     )
 else:
     configure_app(app, launch_scheduler=True)
-    app.app_context().push()
     start_queue()

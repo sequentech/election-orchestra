@@ -16,6 +16,7 @@ RANDOM_DEVICE="${RANDOM_DEVICE:-/dev/urandom}"
 TRUSTEES="${TRUSTEES:-trustee1,trustee2}"
 ETCD_ENDPOINT="${ETCD_ENDPOINT:-}"
 SERVICE_NAME="${SERVICE_NAME:-trustee1}"
+GUNICORN_THREADS="${GUNICORN_THREADS:-4}"
 
 echo "entrypoint: state of the vars after assuming defaults:"
 export
@@ -95,5 +96,6 @@ echo "election-orchestra: launching gunicorn service.."
 gunicorn \
     -b "${EO_FLASK_RUN_HOST}:${EO_FLASK_RUN_PORT}" \
     --log-level "${LOG_LEVEL}" \
+    --threads "${GUNICORN_THREADS}" \
     "${FLASK_APP}"
 

@@ -21,7 +21,7 @@ from ..models import Election, Authority, Session
 from ..reject_adapter import RejectAdapter
 from ..utils import mkdir_recursive
 
-from taskqueue import end_task
+from ..taskqueue import end_task
 
 @decorators.local_task
 @decorators.task(action="tally_election", queue="launch_task")

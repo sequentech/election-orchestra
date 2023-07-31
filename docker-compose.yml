@@ -33,6 +33,7 @@ services:
       SERVICE_NAME: trustee1
       CERT_COMMON_NAME: trustee1_nginx
       EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db1:db1@db1/db1
+      EO_ROOT_URL: https://trustee1_nginx:8080/api/queues
     depends_on:
       <<: *trustee_depends_on
       db1:
@@ -49,6 +50,8 @@ services:
       SERVICE_NAME: trustee2
       CERT_COMMON_NAME: trustee2_nginx
       EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db2:db2@db2/db2
+
+      EO_ROOT_URL: https://trustee1_nginx:8080/api/queues
     depends_on:
       <<: *trustee_depends_on
       db2:

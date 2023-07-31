@@ -16,7 +16,6 @@ import threading
 
 
 def safe_dequeue():
-    app.app_context().push()
     logging.debug("safe_dequeue(): starting")
     try:
         dequeue_task()
@@ -59,7 +58,7 @@ def dequeue_task():
 
         apply_task(todo.task, todo.data)
     else:
-        logging.debug("no task to do?")
+        logging.debug("no task to do")
 
 def queue_task(task='election', data=None):
     data = data or {}
@@ -98,14 +97,15 @@ def end_task():
 ### TASKS
 
 def election_task(data):
+    logging.debug(f"election_task(): running election_task..")
     if not data:
-        print("invalid json")
+        logging.error(f"no data")
         return False
 
     try:
         check_election_data(data, True)
-    except Exception as e:
-        print("ERROR", e)
+    except Exception as error:
+        logging.error(f"election_task(): invalid json {error}")
         return False
 
     e = Election(
@@ -140,6 +140,8 @@ def election_task(data):
             'election_id': data['id']
         }
     )
+
+    logging.error(f"election_task(): sending task..")
     task.create_and_send()
     return task
 

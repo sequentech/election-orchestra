@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 # Usage:
-# time nix run .#dockerImage.copyToDockerDaemon && docker images election_orchestra:latest && docker run -it --network election-orchestra_devcontainer_default election_orchestra:latest
+# time nix run .#dockerImage.copyToDockerDaemon && docker images election_orchestra:latest && docker compose up --build --force-recreate
 # Then:
-# curl http://172.18.0.3:9090
+# docker compose exec -it trustee1 eotest full --vmnd --vcount 100 --peers trustee2_nginx
 {
   description = "test-devenv test project";
 
@@ -46,6 +46,7 @@
           # See https://github.com/nix-community/poetry2nix/blob/master/docs/edgecases.md#modulenotfounderror-no-module-named-packagename
           election_orchestra-build-requirements = {
             frestq = [ "poetry" ];
+            sqlalchemy-json = [ "setuptools" ];
           };
           election_orchestra-overrides = poetry2nix.defaultPoetryOverrides.extend (
             self: super: builtins.mapAttrs 
@@ -108,8 +109,8 @@
                 python.pkgs.gunicorn
                 pkgs.openssl
                 pkgs.jre8
-                pkgs.vim
                 pkgs.gmp
+                pkgs.vim
                 pkgs.etcd
                 mixnetPackages.mixnet
                 election_orchestra.dependencyEnv
