@@ -104,12 +104,13 @@
               name = "root";
               paths = [ 
                 pkgs.bashInteractive
-                pkgs.coreutils
+                #pkgs.coreutils
                 pkgs.nodejs
                 python.pkgs.gunicorn
                 pkgs.openssl
                 pkgs.jre8
                 pkgs.gmp
+                pkgs.busybox
                 pkgs.vim
                 pkgs.etcd
                 mixnetPackages.mixnet
@@ -130,6 +131,7 @@
                     baseEnv = {
                       FLASK_RUN_PORT = "${flaskPort}";
                       PYTHONPATH = "${election_orchestra.dependencyEnv}/lib/python3.10/site-packages";
+                      LD_LIBRARY_PATH = "/lib";
                     };
                     joined = envFile // baseEnv;
                   in joined);
@@ -146,7 +148,6 @@
                 deps = [
                   python.pkgs.gunicorn
                   pkgs.bashInteractive
-                  pkgs.coreutils
                   pkgs.nodejs
                   pkgs.openssl
                 ];

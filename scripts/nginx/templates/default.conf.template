@@ -65,7 +65,7 @@ http {
         large_client_header_buffers   4 ${NGINX_HTTP_CLIENT_MAX_HEADER_SIZE};
 
         add_header Strict-Transport-Security max-age=31536000;
-        ssl_verify_client on;
+        #ssl_verify_client on;
         ssl_client_certificate  ${EO_SSL_CALIST_PATH};
         ssl_certificate         ${EO_SSL_CERT_PATH};
         ssl_certificate_key     ${EO_SSL_KEY_PATH};

@@ -168,11 +168,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1690563975,
-        "narHash": "sha256-btAl9JTPE3ZU8qU0XrlBUhLdCyBQ2gujaJxzhGJAifo=",
+        "lastModified": 1690785572,
+        "narHash": "sha256-l/JBbtoVayWijNpYoP/ertWpk6lyOxJCFXgGCuBYgmw=",
         "owner": "sequentech",
         "repo": "mixnet",
-        "rev": "2dc1d5e59e065ccf63bde5caa0b4b37541384f04",
+        "rev": "28e76dee1af8b82de2b13aa778f47645359ae79e",
         "type": "github"
       },
       "original": {
