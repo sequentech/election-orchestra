@@ -8,7 +8,7 @@
 import re
 import os
 import codecs
-import subprocess
+import logging
 import json
 import shutil
 import signal
@@ -197,7 +197,8 @@ def generate_private_info(task):
 
     # 2. create base local data from received input in case it's needed:
     # create election models, dirs and stubs if we are not the director
-    if certs_differ(task.get_data()['sender_ssl_cert'], app.config.get('SSL_CERT_STRING', '')):
+    if task.get_data()['sender_url'] != app.config.get('ROOT_URL'):
+        logging.debug(f"generate_private_info(): we are NOT the director")
         if os.path.exists(election_privpath):
             raise TaskError(dict(
                 reason="Already existing election id %d" % input_data['id']
@@ -236,6 +237,7 @@ def generate_private_info(task):
             db.session.add(session_model)
 
             session_privpath = os.path.join(election_privpath, session['id'])
+            logging.debug(f"generate_private_info(): creating dir session_privpath={session_privpath}")
             mkdir_recursive(session_privpath)
             stub_path = os.path.join(session_privpath, 'stub.xml')
             stub_file = codecs.open(stub_path, 'w', encoding='utf-8')
@@ -244,6 +246,7 @@ def generate_private_info(task):
             i += 1
         db.session.commit()
     else:
+        logging.debug(f"generate_private_info(): we are the director")
         # if we are the director, models, dirs and stubs have been created
         # already, so we just get the election from the database
         election = db.session.query(Election)\
@@ -340,6 +343,7 @@ def generate_public_key(task):
     '''
     Generates the local private info for a new election
     '''
+    logging.debug(f"generate_public_key(): start")
     input_data = task.get_data()['input_data']
     session_id = input_data['session_id']
     election_id = input_data['election_id']
@@ -349,15 +353,18 @@ def generate_public_key(task):
 
     # some sanity checks, as this is not a local task
     if not os.path.exists(session_privpath):
+        logging.debug(f"generate_public_key(): not os.path.exists(session_privpath)")
         raise TaskError(dict(
             reason="invalid session_id / election_id: " + session_privpath
         ))
     if os.path.exists(os.path.join(session_privpath, 'publicKey_raw')) or\
             os.path.exists(os.path.join(session_privpath, 'publicKey_json')):
+        logging.debug(f"generate_public_key(): pubkey already created")
         raise TaskError(dict(reason="pubkey already created"))
 
     # if it's not local, we have to create the merged protInfo.xml
     protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
+    logging.debug(f"generate_public_key(): if it's not local, we have to create the merged protInfo.xml")
     if not os.path.exists(protinfo_path):
         protinfo_file = codecs.open(protinfo_path, 'w', encoding='utf-8')
         protinfo_file.write(input_data['protInfo_content'])
@@ -375,16 +382,8 @@ def generate_public_key(task):
 
     #call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
     #         timeout=10*60, check_ret=0, output_filter=output_filter)
+    logging.debug(f"calling v_gen_public_key..")
     v_gen_public_key(session_privpath, output_filter)
-
-
-    def output_filter2(p, o, output):
-        '''
-        detect common errors and kill process in that case
-        '''
-        if "Failed to parse info files!" in o:
-            p.kill(signal.SIGKILL)
-            raise TaskError(dict(reason='error executing mixnet'))
 
     # transform it into json format
     #call_cmd(["vmnc", "-pkey", "-outi", "json", "publicKey_raw",
@@ -405,3 +404,5 @@ def generate_public_key(task):
     protinfo_privpath = os.path.join(session_privpath, 'protInfo.xml')
     protinfo_pubpath = os.path.join(session_pubpath, 'protInfo.xml')
     shutil.copyfile(protinfo_privpath, protinfo_pubpath)
+    logging.debug(f"generate_public_key(): session_privpath={session_privpath}")
+    logging.debug(f"generate_public_key(): session_privpath={session_privpath} end")

@@ -72,7 +72,7 @@ def review_tally(task):
     '''
     Generates the local private info for a new election
     '''
-    sender_ssl_cert = task.get_data()['sender_ssl_cert']
+    sender_url = task.get_data()['sender_url']
     data = task.get_data()['input_data']
 
     # check input data
@@ -107,7 +107,7 @@ def review_tally(task):
     # check sender is legitimate
     found_director = False
     for auth in election.authorities.all():
-        if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+        if auth.orchestra_url != sender_url:
             found_director = True
     if not found_director:
         raise TaskError(dict(reason="review tally sent by an invalid authority"))
@@ -346,7 +346,7 @@ class PerformTallyTask(TaskHandler):
         Performs the tally in a synchronized way with the other authorities
         '''
         input_data = self.task.get_data()['input_data']
-        sender_ssl_cert = self.task.get_data()['sender_ssl_cert']
+        sender_url = self.task.get_data()['sender_url']
         election_id = input_data['election_id']
         session_id = input_data['session_id']
 
@@ -363,7 +363,7 @@ class PerformTallyTask(TaskHandler):
         # check sender is legitimate
         found_director = False
         for auth in election.authorities.all():
-            if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+            if auth.orchestra_url != sender_url:
                 found_director = True
         if not found_director:
             raise TaskError(dict(
@@ -432,7 +432,7 @@ def verify_and_publish_tally(task):
     '''
     Once a tally has been performed, verify the result and if it's ok publish it
     '''
-    sender_ssl_cert = task.get_data()['sender_ssl_cert']
+    sender_url = task.get_data()['sender_url']
     input_data = task.get_data()['input_data']
     election_id = input_data['election_id']
     if election_id <= 0:
@@ -446,7 +446,7 @@ def verify_and_publish_tally(task):
     # check sender is legitimate
     found_director = False
     for auth in election.authorities.all():
-        if not certs_differ(auth.ssl_cert, sender_ssl_cert):
+        if auth.orchestra_url != sender_url:
             found_director = True
     if not found_director:
         raise TaskError(dict(

@@ -9,6 +9,7 @@ import os
 import signal
 import time
 import subprocess
+import logging
 import hashlib
 
 from frestq.app import app
@@ -45,7 +46,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
     Utility to call a command.
     timeout is in seconds.
     '''
-    print("call_cmd: calling " + " ".join(cmd))
+    logging.debug("call_cmd: calling " + " ".join(cmd))
     p = Process(cmd, cwd=cwd, stderr=subprocess.STDOUT)
     launch_time = time.process_time()
     output = ""
@@ -56,7 +57,7 @@ def call_cmd(cmd, timeout=-1, output_filter=None, cwd=None, check_ret=None):
         # print any new output
         o = p.read().decode('utf-8')
         if len(o) > 0:
-            print("output = %s" % o)
+            logging.debug("output = %s" % o)
 
         if output_filter:
             output_filter(p, o, output)

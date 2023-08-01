@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
 import subprocess
+import logging
 from .utils import *
 from frestq.app import app
 
@@ -49,6 +50,7 @@ def v_merge(protinfos, session_privpath):
 
 @pre_kill_mixnet
 def v_gen_public_key(session_privpath, output_filter):
+    logging.debug("v_gen_public_key(): called")
     return call_cmd(["vmn", "-keygen", "publicKey_raw"], cwd=session_privpath,
              timeout=10*60, check_ret=0, output_filter=output_filter)
 
