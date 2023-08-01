@@ -22,6 +22,7 @@ x-trustee-nginx-common: &trustee_nginx_common
   env_file: .env
   ports:
    - "8080"
+   - 8084/udp
   environment: &trustee_nginx_env
    NGINX_PORT: "8080"
    DOLLAR: "$"
@@ -34,6 +35,8 @@ services:
       CERT_COMMON_NAME: trustee1_nginx
       EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db1:db1@db1/db1
       EO_ROOT_URL: https://trustee1_nginx:8080/api/queues
+      EO_VFORK_SERVER_URL: http://trustee1
+      EO_VFORK_HINT_SERVER_SOCKET: trustee1
     depends_on:
       <<: *trustee_depends_on
       db1:
@@ -50,8 +53,9 @@ services:
       SERVICE_NAME: trustee2
       CERT_COMMON_NAME: trustee2_nginx
       EO_SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://db2:db2@db2/db2
-
       EO_ROOT_URL: https://trustee2_nginx:8080/api/queues
+      EO_VFORK_SERVER_URL: http://trustee2
+      EO_VFORK_HINT_SERVER_SOCKET: trustee2
     depends_on:
       <<: *trustee_depends_on
       db2:
