@@ -35,7 +35,7 @@ setup(
         'prettytable==0.7.2',
         'psycopg2-binary==2.8.6',
         'pycparser==2.10',
-        'uwsgi==2.0.18',
+        'uwsgi==2.0.22',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
