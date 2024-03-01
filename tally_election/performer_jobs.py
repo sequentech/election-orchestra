@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
 import os
+import csv
 import re
 import tarfile
 import codecs
@@ -217,21 +218,6 @@ def review_tally(task):
         pubkeys[qnum]['g'] = int(pubkeys[qnum]['g'])
         pubkeys[qnum]['p'] = int(pubkeys[qnum]['p'])
 
-    def check_ballots_uncounted(session, ballot_hashes):
-        '''
-        check that no ballot has been used before, otherwise raise error as no
-        ballot is allowed to be counted twice
-        '''
-        query = session.ballots.filter(Ballot.ballot_hash.in_(ballot_hashes))
-        if query.count() > 0:
-            hashes = json.dumps([ballot.ballot_hash for ballot in query])
-            raise TaskError(dict(
-                reason=("error, some ballots already tallied election_id = %s" +
-                ", session_id = %s, duplicated_ballot_hashes = %s") % (
-                    str(election_id), session.id, hashes
-                )
-            ))
-
     try:
         isequent_file = open(ciphertexts_path, 'r')
         for session in sessions:
@@ -240,36 +226,27 @@ def review_tally(task):
             outvotes_files.append(open(outvotes_path, 'w'))
         print("\n------ Reading and verifying POK of plaintext for the votes..\n")
         lnum = 0
-        hash_groups = [[] for _ in sessions]
-        for line in isequent_file:
+        ballots_reader = csv.reader(isequent_file, delimiter="|")
+        for line in ballots_reader:
+            ballot, _voterid = line
             lnum += 1
-            line_data = json.loads(line)
+            line_data = json.loads(ballot)
             assert len(line_data['choices']) == len(outvotes_files)
 
             i = 0
             for choice in line_data['choices']:
                 # NOTE: we use specific separators with no spaces, because
                 # otherwise mixnet won't read it well
-                ballot_data = json.dumps(choice,
-                    ensure_ascii=False, sort_keys=True, separators=(',', ':'))
-                hash_groups[i].append(hash_data(ballot_data))
-
-                # Every LEN_QUERY_GROUP hashes, we check that no ballot has
-                # been used before, otherwise raise error as no ballot is
-                # allowed to be counted twice
-                if len(hash_groups[i]) >= LEN_QUERY_GROUP:
-                    check_ballots_uncounted(sessions[i], hash_groups[i])
-                    # reset group
-                    hash_groups[i] = []
+                ballot_data = json.dumps(
+                    choice,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(',', ':')
+                )
 
                 outvotes_files[i].write(ballot_data)
                 outvotes_files[i].write("\n")
                 i += 1
-
-        # check the remaining ballot hashes have not been tallied
-        for i, group in enumerate(hash_groups):
-            if len(group) > 0:
-              check_ballots_uncounted(sessions[i], group)
 
     finally:
         print("\n------ Verified %d votes in total (%d invalid)\n" % (lnum, invalid_votes))
@@ -567,16 +544,6 @@ def verify_and_publish_tally(task):
         proofs_path = os.path.join(session_privpath, 'dir', 'roProof')
         protinfo_path = os.path.join(session_privpath, 'protInfo.xml')
 
-        outvotes_path = os.path.join(election_privpath, session.id,
-            'ciphertexts_json')
-        with open(outvotes_path, 'r') as outvotes:
-            for line in outvotes:
-                b = Ballot(
-                    session_id=session.id,
-                    ballot_hash=hash_data(line.strip()))
-                db.session.add(b)
-            db.session.commit()
-
         deterministic_tar_add(tar, plaintexts_json_path,
             os.path.join(session.id, 'plaintexts_json'), timestamp)
         deterministic_tar_add(tar, proofs_path,
@@ -584,7 +551,6 @@ def verify_and_publish_tally(task):
         deterministic_tar_add(tar, protinfo_path,
             os.path.join(session.id, "protInfo.xml"), timestamp)
     tar.close()
-
 
     # and publish also the sha256 of the tarball
     tally_hash_file = open(tally_hash_path, 'w')
