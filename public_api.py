@@ -250,7 +250,7 @@ def receive_tally():
     print(request.get_json(force=True, silent=True))
     return make_response("", 202)
 
-@public_api.route('/check_state', methods=['POST'])
+@public_api.route('/check_state', methods=['GET'])
 def check_state():
     '''
     This is a test route to be able to test that callbacks are correctly sent
