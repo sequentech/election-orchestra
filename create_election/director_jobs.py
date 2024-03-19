@@ -27,7 +27,7 @@ from utils import mkdir_recursive
 from vmn import *
 
 from taskqueue import end_task
-
+ 
 @decorators.local_task
 @decorators.task(action="create_election", queue="launch_task")
 class CreateElectionTask(TaskHandler):
