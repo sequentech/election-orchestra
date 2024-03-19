@@ -44,6 +44,8 @@ class CreateElectionTask(TaskHandler):
         sessions = []
         questions = json.loads(election.questions)
         i = 0
+        if 1:
+            raise TaskError(dict(reason="Felix was here"))
         for question in questions:
             session_id = "%d-%s" % (i, str(uuid.uuid4()))
             # create stub.xml
@@ -145,6 +147,7 @@ class CreateElectionTask(TaskHandler):
 
             session = requests.sessions.Session()
             callback_url = election.callback_url
+            print("FFF callback_url, " + callback_url)
             fail_data = {
                 "status": "error",
                 "reference": {
