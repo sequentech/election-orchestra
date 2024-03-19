@@ -143,7 +143,7 @@ class CreateElectionTask(TaskHandler):
             input_data = self.task.get_data()['input_data']
             election_id = input_data['election_id']
             election = db.session.query(Election)\
-                .filter(Election.session_id == election_id).first()
+                .filter(Election.id == election_id).first()
 
             session = requests.sessions.Session()
             callback_url = election.callback_url
