@@ -162,8 +162,19 @@ class CreateElectionTask(TaskHandler):
             ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
             ssl_key_path = app.config.get('SSL_KEY_PATH', '')
             print("\ncallback_url " + callback_url)
-            r = session.request('post', callback_url, data=dumps(fail_data),
-                                verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
+            try:
+                r = session.request(
+                    'post',
+                    callback_url,
+                    data=dumps(fail_data),
+                    headers={'content-type': 'application/json'},
+                    verify=ssl_calist_path,
+                    cert=(ssl_cert_path, ssl_key_path)
+                )
+            except Exception as post_error:
+                print("exception posting callback error = ")
+                print(post_error)
+                raise post_error
         finally:
             end_task()
 
