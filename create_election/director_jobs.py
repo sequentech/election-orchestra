@@ -147,7 +147,7 @@ class CreateElectionTask(TaskHandler):
 
             session = requests.sessions.Session()
             callback_url = election.callback_url
-            print("FFF callback_url, " + callback_url)
+            print("callback_url, " + callback_url)
             fail_data = {
                 "status": "error",
                 "reference": {
@@ -172,7 +172,7 @@ class CreateElectionTask(TaskHandler):
                     cert=(ssl_cert_path, ssl_key_path)
                 )
             except Exception as post_error:
-                print("exception posting callback error = ")
+                print("exception calling to callback_url:")
                 print(post_error)
                 raise post_error
         finally:
