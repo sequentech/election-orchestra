@@ -153,6 +153,8 @@ def generate_private_info(task):
     '''
     input_data = task.get_data()['input_data']
     election_id = input_data['id']
+    if 1:
+        raise TaskError(dict(reason="Felix was here YY1"))
 
     # 1. check this is a new election and check input data
     private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
