@@ -159,7 +159,6 @@ class CreateElectionTask(TaskHandler):
             ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
             ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
             ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-            print("\ncallback_url " + callback_url)
             try:
                 r = session.request(
                     'post',
