@@ -36,10 +36,6 @@ class TallyElectionTask(TaskHandler):
                 with_parent(election,"sessions").\
                 order_by(Session.question_number)]
 
-        print("FFF before error")
-        if 1:
-            raise TaskError(dict(reason="Felix was here YY1"))
-
         # 1. let all authorities download the votes and review the requested
         # tally
         parallel_task = ParallelTask()
