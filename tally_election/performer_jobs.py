@@ -353,10 +353,6 @@ class PerformTallyTask(TaskHandler):
         election_id = input_data['election_id']
         session_id = input_data['session_id']
 
-        print("FFF before error")
-        if 1:
-            raise TaskError(dict(reason="Felix was here YY2"))
-
         if election_id <= 0:
             raise TaskError(dict(reason="invalid election_id, must be positive"))
         if not re.match("^[a-zA-Z0-9_-]+$", session_id):
