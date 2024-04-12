@@ -250,6 +250,15 @@ def receive_tally():
     print(request.get_json(force=True, silent=True))
     return make_response("", 202)
 
+@public_api.route('/check_state', methods=['GET'])
+def check_state():
+    '''
+    This is a test route to be able to test that callbacks are correctly sent
+    '''
+    print("ATTENTION received check-state callback: ")
+    print(request.get_json(force=True, silent=True))
+    return make_response("", 202)
+
 @public_api.route('/download_private_share', methods=['POST'])
 def download_private_share():
     '''
