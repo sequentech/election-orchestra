@@ -17,7 +17,7 @@ setup(
     description='election orchestrator',
     long_description=open('README.md').read(),
     install_requires=[
-        'frestq @ git+https://github.com/sequentech/frestq.git@fix/meta-402/10.2.x',
+        'frestq @ git+https://github.com/sequentech/frestq.git@10.3.0',
         'requests==2.31.0',
         'Flask==2.3.2',
         'Flask-SQLAlchemy==2.5.1',
