@@ -27,7 +27,7 @@ from utils import mkdir_recursive
 from vmn import *
 
 from taskqueue import end_task
-
+ 
 @decorators.local_task
 @decorators.task(action="create_election", queue="launch_task")
 class CreateElectionTask(TaskHandler):
@@ -141,10 +141,11 @@ class CreateElectionTask(TaskHandler):
             input_data = self.task.get_data()['input_data']
             election_id = input_data['election_id']
             election = db.session.query(Election)\
-                .filter(Election.session_id == election_id).first()
+                .filter(Election.id == election_id).first()
 
             session = requests.sessions.Session()
             callback_url = election.callback_url
+            print("callback_url, " + callback_url)
             fail_data = {
                 "status": "error",
                 "reference": {
@@ -158,9 +159,19 @@ class CreateElectionTask(TaskHandler):
             ssl_calist_path = app.config.get('SSL_CALIST_PATH', '')
             ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
             ssl_key_path = app.config.get('SSL_KEY_PATH', '')
-            print("\ncallback_url " + callback_url)
-            r = session.request('post', callback_url, data=dumps(fail_data),
-                                verify=ssl_calist_path, cert=(ssl_cert_path, ssl_key_path))
+            try:
+                r = session.request(
+                    'post',
+                    callback_url,
+                    data=dumps(fail_data),
+                    headers={'content-type': 'application/json'},
+                    verify=ssl_calist_path,
+                    cert=(ssl_cert_path, ssl_key_path)
+                )
+            except Exception as post_error:
+                print("exception calling to callback_url:")
+                print(post_error)
+                raise post_error
         finally:
             end_task()
 
