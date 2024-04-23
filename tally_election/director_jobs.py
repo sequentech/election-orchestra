@@ -112,6 +112,7 @@ class TallyElectionTask(TaskHandler):
             input_data = self.task.get_data()['input_data']
             election_id = input_data['election_id']
             callback_url = input_data['callback_url']
+            print("callback_url, " + callback_url)
             election = db.session.query(Election)\
                 .filter(Election.id == election_id).first()
 
@@ -130,15 +131,20 @@ class TallyElectionTask(TaskHandler):
             ssl_cert_path = app.config.get('SSL_CERT_PATH', '')
             ssl_key_path = app.config.get('SSL_KEY_PATH', '')
             print("\nFF callback_url4 " + callback_url)
-            r = session.request(
-                'post', 
-                callback_url, 
-                data=dumps(fail_data), 
-                headers={'content-type': 'application/json'},
-                verify=ssl_calist_path, 
-                cert=(ssl_cert_path, ssl_key_path)
-            )
-            print(r.text)
+            try:
+                r = session.request(
+                    'post', 
+                    callback_url, 
+                    data=dumps(fail_data), 
+                    headers={'content-type': 'application/json'},
+                    verify=ssl_calist_path, 
+                    cert=(ssl_cert_path, ssl_key_path)
+                )
+                print(r.text)
+            except Exception as post_error:
+                print("exception calling to callback_url:")
+                print(post_error)
+                raise post_error
         finally:
             end_task()
 
