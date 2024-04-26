@@ -27,7 +27,7 @@ setup(
         'Werkzeug==2.3.8',
         'argparse==1.2.1',
         'cffi==1.14.4',
-        'cryptography==42.0.2',
+        'cryptography==42.0.4',
         'pyOpenSSL==24.0.0',
         'ipdb==0.13.9',
         'ipython==8.10.0',
