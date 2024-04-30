@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='election-orchestra',
-    version='10.4.0',
+    version='10.4.1',
     author='Sequent Team',
     author_email='legal@sequentech.io',
     packages=find_packages(),
@@ -17,7 +17,7 @@ setup(
     description='election orchestrator',
     long_description=open('README.md').read(),
     install_requires=[
-        'frestq @ git+https://github.com/sequentech/frestq.git@10.4.0',
+        'frestq @ git+https://github.com/sequentech/frestq.git@10.4.1',
         'requests==2.31.0',
         'Flask==2.3.2',
         'Flask-SQLAlchemy==2.5.1',
