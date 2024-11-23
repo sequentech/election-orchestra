@@ -20,6 +20,7 @@ from frestq.app import app, db
 from models import Election, Authority, QueryQueue
 from create_election.performer_jobs import check_election_data
 import keys_management
+import election_management
 
 
 from taskqueue import queue_task, apply_task, dequeue_task
@@ -338,3 +339,36 @@ def restore_private_share():
     result, code = keys_management.restore_private_share(election_id, private_key_base64)
 
     return make_response(result, code)
+
+
+
+@public_api.route('/delete', methods=['POST'])
+def delete_election():
+    '''
+    delete election
+    '''
+    import os
+    print("ATTENTION received delete: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    
+    if not election:
+        make_response("election not found", 400)
+
+    election_management.send_delete_election_task(election_id)
+
+    # 1. generate a session per question
+    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_private_path = os.path.join(private_data_path, str(election_id))
+    
+    #result, code = keys_management.delete_private_share(election_id, private_key_base64)
+    #queueid = queue_task(task='election', data=d)
+
+    return make_response("", 200)
