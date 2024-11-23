@@ -338,3 +338,23 @@ def restore_private_share():
     result, code = keys_management.restore_private_share(election_id, private_key_base64)
 
     return make_response(result, code)
+
+
+
+@public_api.route('/delete', methods=['POST'])
+def delete_election():
+    '''
+    delete election
+    '''
+    print("ATTENTION received delete-private-share: ")
+
+    req = request.get_json(force=True, silent=True)
+    election_id = req.get('election_id', None)
+
+    if not isinstance(election_id, str):
+        make_response("election id missing", 400)
+    
+    #result, code = keys_management.delete_private_share(election_id, private_key_base64)
+    #queueid = queue_task(task='election', data=d)
+
+    return make_response("", 200)
