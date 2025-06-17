@@ -33,23 +33,56 @@ def generate_private_info(task):
     input_data = task.get_data()['input_data']
     election_id = input_data['id']
 
+    # Delete the folder and all its contents
+    try:
+        delete_election_folders(election_id)
+        print(f"Successfully deleted election: {election_id}")
+    except FileNotFoundError:
+        print(f"Folder not found: {election_id}")
+    except PermissionError:
+        print(f"Permission denied: {election_id}")
+    except Exception as e:
+        print(f"Error deleting folder {election_id}: {e}")
+
+
+def delete_election_folders(election_id):
+    # check election exists
     election = db.session.query(Election)\
         .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not created"))
+    
+    remove_existing_election(election_id)
+
+    # each session is a question
+    sessions = election.sessions.all()
+    for session in sessions:
+        ballots = session.ballots
+        for ballot in ballots:
+            db.session.delete(ballot)
     
     db.session.delete(election)
     db.session.commit()
+    print(f"deleted election {election}")
 
-    # 1. check this is a new election and check input data
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, str(election_id))
+def remove_existing_election(election_id):
+    tally_path = get_public_dir_path(election_id)
+    priv_tally_path = get_private_dir_path(election_id)
 
-    # Delete the folder and all its contents
-    try:
-        shutil.rmtree(election_privpath)
-        print(f"Successfully deleted private data folder: {election_privpath}")
-    except FileNotFoundError:
-        print(f"Folder not found: {election_privpath}")
-    except PermissionError:
-        print(f"Permission denied: {election_privpath}")
-    except Exception as e:
-        print(f"Error deleting folder {election_privpath}: {e}")
+    if os.path.exists(tally_path):
+        print(f"removing {tally_path}")
+        shutil.rmtree(tally_path)
+
+    if os.path.exists(priv_tally_path):
+        print(f"removing {priv_tally_path}")
+        shutil.rmtree(priv_tally_path)
+
+def get_public_dir_path(election_id):
+    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
+    election_pubpath = os.path.join(pubdata_path, str(election_id))
+    return election_pubpath
+
+def get_private_dir_path(election_id):
+    privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_privpath = os.path.join(privdata_path, str(election_id))
+    return election_privpath
