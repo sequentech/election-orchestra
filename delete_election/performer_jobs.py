@@ -60,6 +60,8 @@ def delete_election_folders(election_id):
         ballots = session.ballots
         for ballot in ballots:
             db.session.delete(ballot)
+    
+    db.session.delete(election)
     db.session.commit()
 
 def remove_existing_election(election_id):
