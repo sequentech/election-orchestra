@@ -24,7 +24,7 @@ import shutil
 from models import Election, Authority, Session
 from utils import *
 from vmn import *
-from delete_election.performer_jobs import reset_tally
+from tally_election.performer_jobs import reset_tally
 
 @decorators.task(action="delete_private_info", queue="orchestra_performer")
 def generate_private_info(task):
