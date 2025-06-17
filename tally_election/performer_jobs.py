@@ -614,15 +614,15 @@ def remove_existing_tally_files(election_id, also_private = False):
     tally_hash_path = get_tally_hash_file_path(election_id)
 
     if os.path.exists(tally_path):
-        print("removing {tally_path}")
+        print(f"removing {tally_path}")
         os.remove(tally_path)
 
     if os.path.exists(tally_hash_path):
-        print("removing {tally_hash_path}")
+        print(f"removing {tally_hash_path}")
         os.remove(tally_hash_path)
 
     if also_private and os.path.exists(priv_tally_path):
-        print("removing {priv_tally_path}")
+        print(f"removing {priv_tally_path}")
         os.remove(priv_tally_path)
 
 def get_tally_file_path(election_id):
