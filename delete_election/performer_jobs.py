@@ -24,7 +24,6 @@ import shutil
 from models import Election, Authority, Session
 from utils import *
 from vmn import *
-from tally_election.performer_jobs import reset_tally
 
 @decorators.task(action="delete_private_info", queue="orchestra_performer")
 def generate_private_info(task):
@@ -36,7 +35,7 @@ def generate_private_info(task):
 
     # Delete the folder and all its contents
     try:
-        reset_tally(election_id, True)
+        delete_election_folders(election_id)
         print(f"Successfully deleted election: {election_id}")
     except FileNotFoundError:
         print(f"Folder not found: {election_id}")
@@ -44,3 +43,43 @@ def generate_private_info(task):
         print(f"Permission denied: {election_id}")
     except Exception as e:
         print(f"Error deleting folder {election_id}: {e}")
+
+
+def delete_election_folders(election_id):
+    # check election exists
+    election = db.session.query(Election)\
+        .filter(Election.id == election_id).first()
+    if not election:
+        raise TaskError(dict(reason="election not created"))
+    
+    remove_existing_election(election_id)
+
+    # each session is a question
+    sessions = election.sessions.all()
+    for session in sessions:
+        ballots = session.ballots
+        for ballot in ballots:
+            db.session.delete(ballot)
+    db.session.commit()
+
+def remove_existing_election(election_id):
+    tally_path = get_public_dir_path(election_id)
+    priv_tally_path = get_private_dir_path(election_id)
+
+    if os.path.exists(tally_path):
+        print(f"removing {tally_path}")
+        os.remove(tally_path)
+
+    if os.path.exists(priv_tally_path):
+        print(f"removing {priv_tally_path}")
+        os.remove(priv_tally_path)
+
+def get_public_dir_path(election_id):
+    pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
+    election_pubpath = os.path.join(pubdata_path, str(election_id))
+    return election_pubpath
+
+def get_private_dir_path(election_id):
+    privdata_path = app.config.get('PRIVATE_DATA_PATH', '')
+    election_privpath = os.path.join(privdata_path, str(election_id))
+    return election_privpath

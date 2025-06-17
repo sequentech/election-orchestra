@@ -591,14 +591,14 @@ def deterministic_tar_add(tfile, filepath, arcname, timestamp, uid=1000, gid=100
             deterministic_tar_add(tfile, newpath, newarcname, timestamp, uid,
                 gid)
 
-def reset_tally(election_id, also_private = False):
+def reset_tally(election_id):
     # check election exists
     election = db.session.query(Election)\
         .filter(Election.id == election_id).first()
     if not election:
         raise TaskError(dict(reason="election not created"))
     
-    remove_existing_tally_files(election_id, also_private)
+    remove_existing_tally_files(election_id)
 
     # each session is a question
     sessions = election.sessions.all()
@@ -608,7 +608,7 @@ def reset_tally(election_id, also_private = False):
             db.session.delete(ballot)
     db.session.commit()
 
-def remove_existing_tally_files(election_id, also_private = False):
+def remove_existing_tally_files(election_id):
     tally_path = get_tally_file_path(election_id)
     priv_tally_path = get_private_file_path(election_id)
     tally_hash_path = get_tally_hash_file_path(election_id)
@@ -620,10 +620,6 @@ def remove_existing_tally_files(election_id, also_private = False):
     if os.path.exists(tally_hash_path):
         print(f"removing {tally_hash_path}")
         os.remove(tally_hash_path)
-
-    if also_private and os.path.exists(priv_tally_path):
-        print(f"removing {priv_tally_path}")
-        os.remove(priv_tally_path)
 
 def get_tally_file_path(election_id):
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
