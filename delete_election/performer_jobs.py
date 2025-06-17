@@ -63,6 +63,7 @@ def delete_election_folders(election_id):
     
     db.session.delete(election)
     db.session.commit()
+    print(f"deleted election {election}")
 
 def remove_existing_election(election_id):
     tally_path = get_public_dir_path(election_id)
@@ -70,11 +71,11 @@ def remove_existing_election(election_id):
 
     if os.path.exists(tally_path):
         print(f"removing {tally_path}")
-        os.remove(tally_path)
+        shutil.rmtree(tally_path)
 
     if os.path.exists(priv_tally_path):
         print(f"removing {priv_tally_path}")
-        os.remove(priv_tally_path)
+        shutil.rmtree(priv_tally_path)
 
 def get_public_dir_path(election_id):
     pubdata_path = app.config.get('PUBLIC_DATA_PATH', '')
