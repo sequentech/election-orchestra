@@ -24,6 +24,7 @@ import shutil
 from models import Election, Authority, Session
 from utils import *
 from vmn import *
+from delete_election.performer_jobs import reset_tally
 
 @decorators.task(action="delete_private_info", queue="orchestra_performer")
 def generate_private_info(task):
@@ -33,23 +34,13 @@ def generate_private_info(task):
     input_data = task.get_data()['input_data']
     election_id = input_data['id']
 
-    election = db.session.query(Election)\
-        .filter(Election.id == election_id).first()
-    
-    db.session.delete(election)
-    db.session.commit()
-
-    # 1. check this is a new election and check input data
-    private_data_path = app.config.get('PRIVATE_DATA_PATH', '')
-    election_privpath = os.path.join(private_data_path, str(election_id))
-
     # Delete the folder and all its contents
     try:
-        shutil.rmtree(election_privpath)
-        print(f"Successfully deleted private data folder: {election_privpath}")
+        reset_tally(election_id, True)
+        print(f"Successfully deleted election: {election_id}")
     except FileNotFoundError:
-        print(f"Folder not found: {election_privpath}")
+        print(f"Folder not found: {election_id}")
     except PermissionError:
-        print(f"Permission denied: {election_privpath}")
+        print(f"Permission denied: {election_id}")
     except Exception as e:
-        print(f"Error deleting folder {election_privpath}: {e}")
+        print(f"Error deleting folder {election_id}: {e}")
